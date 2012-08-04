@@ -1,5 +1,5 @@
 when defined(Linux):
-  const Lib = "libchipmunk.so"
+  const Lib = "libchipmunk.so.6.1.1"
 else:
   {.error: "Platform unsupported".}
 const 
@@ -72,6 +72,7 @@ type
     normal*: TVector   #/ The normal of the contact point.
     dist*: cdouble     #/ The depth of the contact point.
   #/ A struct that wraps up the important collision data for an arbiter.
+  PContactPointSet* = ptr TContactPointSet
   TContactPointSet*{.pure, final.} = object 
     count*: cint              #/ The number of contact points in the set.
     points*: array[0..CP_MAX_CONTACTS_PER_ARBITER - 1, TContactPoint] #/ The array of contact points.
@@ -276,6 +277,26 @@ type
     hashid: THashValue  #PRIVATE
   PCircleShape* = ptr TCircleShape
   TCircleShape*{.pure, final.} = object
+  
+  #/ Post Step callback function type.
+  TPostStepFunc* = proc (space: PSpace; obj: pointer; data: pointer){.cdecl.}
+  #/ Point query callback function type.
+  TSpacePointQueryFunc* = proc (shape: PShape; data: pointer){.cdecl.}
+  #/ Segment query callback function type.
+  TSpaceSegmentQueryFunc* = proc (shape: PShape; t: cdouble; n: TVector; 
+                                  data: pointer){.cdecl.}
+  #/ Rectangle Query callback function type.
+  TSpaceBBQueryFunc* = proc (shape: PShape; data: pointer){.cdecl.}
+  #/ Shape query callback function type.
+  TSpaceShapeQueryFunc* = proc (shape: PShape; points: PContactPointSet; 
+                                data: pointer){.cdecl.}
+  #/ Space/body iterator callback function type.
+  TSpaceBodyIteratorFunc* = proc (body: PBody; data: pointer){.cdecl.}
+  #/ Space/body iterator callback function type.
+  TSpaceShapeIteratorFunc* = proc (shape: PShape; data: pointer){.cdecl.}
+  #/ Space/constraint iterator callback function type.
+  TSpaceConstraintIteratorFunc* = proc (constraint: PConstraint; 
+                                        data: pointer){.cdecl.}
 
 #/ Version string.
 #var VersionString*{.importc: "cpVersionString", dynlib: Lib.}: cstring
@@ -338,6 +359,149 @@ proc destroy*(space: PSpace) {.
   importc: "cpSpaceDestroy", dynlib: Lib.}
 proc free*(space: PSpace) {.
   importc: "cpSpaceFree", dynlib: Lib.}
+
+defProp(PSpace, cint, iterations, Iterations)
+defProp(PSpace, TVector, gravity, Gravity)
+defProp(PSpace, cdouble, damping, Damping)
+defProp(PSpace, cdouble, idleSpeedThreshold, IdleSpeedThreshold)
+defProp(PSpace, cdouble, sleepTimeThreshold, SleepTimeThreshold)
+defProp(PSpace, cdouble, collisionSlop, CollisionSlop)
+defProp(PSpace, cdouble, collisionBias, CollisionBias)
+defProp(PSpace, TTimestamp, collisionPersistence, CollisionPersistence)
+defProp(PSpace, Bool32, enableContactGraph, EnableContactGraph)
+defProp(PSpace, pointer, data, UserData)
+defGetter(PSpace, PBody, staticBody, StaticBody)
+defGetter(PSpace, cdouble, currDt, CurrentTimeStep)
+
+
+#/ returns true from inside a callback and objects cannot be added/removed.
+proc isLocked*(space: PSpace): Bool{.inline.} = 
+  result = space.locked.bool
+
+#/ Set a default collision handler for this space.
+#/ The default collision handler is invoked for each colliding pair of shapes
+#/ that isn't explicitly handled by a specific collision handler.
+#/ You can pass NULL for any function you don't want to implement.
+proc setDefaultCollisionHandler*(space: PSpace; begin: TCollisionBeginFunc; 
+                                  preSolve: TCollisionPreSolveFunc; 
+                                  postSolve: TCollisionPostSolveFunc; 
+                                  separate: TCollisionSeparateFunc; 
+                                  data: pointer){.
+  cdecl, importc: "cpSpaceSetDefaultCollisionHandler", dynlib: Lib.}
+#/ Set a collision handler to be used whenever the two shapes with the given collision types collide.
+#/ You can pass NULL for any function you don't want to implement.
+proc addCollisionHandler*(space: PSpace; a: TCollisionType; 
+                               b: TCollisionType; begin: TCollisionBeginFunc; 
+                               preSolve: TCollisionPreSolveFunc; 
+                               postSolve: TCollisionPostSolveFunc; 
+                               separate: TCollisionSeparateFunc; data: pointer){.
+  cdecl, importc: "cpSpaceAddCollisionHandler", dynlib: Lib.}
+#/ Unset a collision handler.
+proc removeCollisionHandler*(space: PSpace; a: TCollisionType; 
+                                  b: TCollisionType){.
+  cdecl, importc: "cpSpaceRemoveCollisionHandler", dynlib: Lib.}
+#/ Add a collision shape to the simulation.
+#/ If the shape is attached to a static body, it will be added as a static shape.
+proc addShape*(space: PSpace; shape: PShape): PShape{.
+  cdecl, importc: "cpSpaceAddShape", dynlib: Lib.}
+#/ Explicity add a shape as a static shape to the simulation.
+proc addStaticShape*(space: PSpace; shape: PShape): PShape{.
+  cdecl, importc: "cpSpaceAddStaticShape", dynlib: Lib.}
+#/ Add a rigid body to the simulation.
+proc addBody*(space: PSpace; body: PBody): PBody{.
+  cdecl, importc: "cpSpaceAddBody", dynlib: Lib.}
+#/ Add a constraint to the simulation.
+proc addConstraint*(space: PSpace; constraint: PConstraint): PConstraint{.
+    cdecl, importc: "cpSpaceAddConstraint", dynlib: Lib.}
+#/ Remove a collision shape from the simulation.
+proc removeShape*(space: PSpace; shape: PShape){.
+  cdecl, importc: "cpSpaceRemoveShape", dynlib: Lib.}
+#/ Remove a collision shape added using cpSpaceAddStaticShape() from the simulation.
+proc removeStaticShape*(space: PSpace; shape: PShape){.
+  cdecl, importc: "cpSpaceRemoveStaticShape", dynlib: Lib.}
+#/ Remove a rigid body from the simulation.
+proc removeBody*(space: PSpace; body: PBody){.
+  cdecl, importc: "cpSpaceRemoveBody", dynlib: Lib.}
+#/ Remove a constraint from the simulation.
+proc RemoveConstraint*(space: PSpace; constraint: PConstraint){.
+  cdecl, importc: "cpSpaceRemoveConstraint", dynlib: Lib.}
+#/ Test if a collision shape has been added to the space.
+proc containsShape*(space: PSpace; shape: PShape): Bool{.
+  cdecl, importc: "cpSpaceContainsShape", dynlib: Lib.}
+#/ Test if a rigid body has been added to the space.
+proc containsBody*(space: PSpace; body: PBody): Bool{.
+  cdecl, importc: "cpSpaceContainsBody", dynlib: Lib.}
+#/ Test if a constraint has been added to the space.
+
+proc containsConstraint*(space: PSpace; constraint: PConstraint): Bool{.
+  cdecl, importc: "cpSpaceContainsConstraint", dynlib: Lib.}
+#/ Schedule a post-step callback to be called when cpSpaceStep() finishes.
+#/ @c obj is used a key, you can only register one callback per unique value for @c obj
+proc addPostStepCallback*(space: PSpace; func: TPostStepFunc; 
+                               obj: pointer; data: pointer){.
+  cdecl, importc: "cpSpaceAddPostStepCallback", dynlib: Lib.}
+                                        
+#/ Query the space at a point and call @c func for each shape found.
+proc pointQuery*(space: PSpace; point: TVector; layers: TLayers; 
+                      group: TGroup; func: TSpacePointQueryFunc; data: pointer){.
+  cdecl, importc: "cpSpacePointQuery", dynlib: Lib.}
+
+#/ Query the space at a point and return the first shape found. Returns NULL if no shapes were found.
+proc pointQueryFirst*(space: PSpace; point: TVector; layers: TLayers; 
+                       group: TGroup): PShape{.cdecl, 
+    importc: "cpSpacePointQueryFirst", dynlib: Lib.}
+
+#/ Perform a directed line segment query (like a raycast) against the space calling @c func for each shape intersected.
+proc segmentQuery*(space: PSpace; start: TVector; to: TVector; 
+                    layers: TLayers; group: TGroup; 
+                    func: TSpaceSegmentQueryFunc; data: pointer){.
+  cdecl, importc: "cpSpaceSegmentQuery", dynlib: Lib.}
+#/ Perform a directed line segment query (like a raycast) against the space and return the first shape hit. Returns NULL if no shapes were hit.
+proc segmentQueryFirst*(space: PSpace; start: TVector; to: TVector; 
+                         layers: TLayers; group: TGroup; 
+                         res: PSegmentQueryInfo): PShape{.
+  cdecl, importc: "cpSpaceSegmentQueryFirst", dynlib: Lib.}
+
+#/ Perform a fast rectangle query on the space calling @c func for each shape found.
+#/ Only the shape's bounding boxes are checked for overlap, not their full shape.
+proc BBQuery*(space: PSpace; bb: TBB; layers: TLayers; group: TGroup; 
+                   func: TSpaceBBQueryFunc; data: pointer){.
+  cdecl, importc: "cpSpaceBBQuery", dynlib: Lib.}
+
+#/ Query a space for any shapes overlapping the given shape and call @c func for each shape found.
+proc shapeQuery*(space: PSpace; shape: PShape; func: TSpaceShapeQueryFunc; data: pointer): Bool {.
+  cdecl, importc: "cpSpaceShapeQuery", dynlib: Lib.}
+#/ Call cpBodyActivate() for any shape that is overlaps the given shape.
+proc activateShapesTouchingShape*(space: PSpace; shape: PShape){.
+    cdecl, importc: "cpSpaceActivateShapesTouchingShape", dynlib: Lib.}
+
+#/ Call @c func for each body in the space.
+proc eachBody*(space: PSpace; func: TSpaceBodyIteratorFunc; data: pointer){.
+  cdecl, importc: "cpSpaceEachBody", dynlib: Lib.}
+
+#/ Call @c func for each shape in the space.
+proc eachShape*(space: PSpace; func: TSpaceShapeIteratorFunc; 
+                     data: pointer){.
+  cdecl, importc: "cpSpaceEachShape", dynlib: Lib.}
+#/ Call @c func for each shape in the space.
+proc eachConstraint*(space: PSpace; func: TSpaceConstraintIteratorFunc; 
+                          data: pointer){.
+  cdecl, importc: "cpSpaceEachConstraint", dynlib: Lib.}
+#/ Update the collision detection info for the static shapes in the space.
+proc reindexStatic*(space: PSpace){.
+  cdecl, importc: "cpSpaceReindexStatic", dynlib: Lib.}
+#/ Update the collision detection data for a specific shape in the space.
+proc reindexShape*(space: PSpace; shape: PShape){.
+  cdecl, importc: "cpSpaceReindexShape", dynlib: Lib.}
+#/ Update the collision detection data for all shapes attached to a body.
+proc reindexShapesForBody*(space: PSpace; body: PBody){.
+  cdecl, importc: "cpSpaceReindexShapesForBody", dynlib: Lib.}
+#/ Switch the space to use a spatial has as it's spatial index.
+proc SpaceUseSpatialHash*(space: PSpace; dim: cdouble; count: cint){.
+  cdecl, importc: "cpSpaceUseSpatialHash", dynlib: Lib.}
+#/ Step the space forward in time by @c dt.
+proc step*(space: PSpace; dt: cdouble) {.
+  cdecl, importc: "cpSpaceStep", dynlib: Lib.}
 
 
 #/ Convenience constructor for cpVect structs.
