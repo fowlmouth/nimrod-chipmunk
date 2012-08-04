@@ -6,6 +6,7 @@ else:
 const 
   CP_BUFFER_BYTES* = (32 * 1024)  
   CP_MAX_CONTACTS_PER_ARBITER* = 4
+  CpInfinity: cfloat = 1.0/0
 type 
   Bool32* = cint  #replace one day with cint-compatible bool
   TVector* {.final, pure.} = object
@@ -352,7 +353,7 @@ proc isSleeping*(body: PBody): Bool {.inline.} =
   return body.node.root != nil
 #/ Returns true if the body is static.
 proc isStatic*(body: PBody): bool {.inline.} = 
-  return body.node.idleTime == INFINITY
+  return body.node.idleTime == CpInfinity
 #/ Returns true if the body has not been added to a space.
 proc isRogue*(body: PBody): Bool {.inline.} = 
   return body.space == nil
