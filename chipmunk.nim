@@ -1,8 +1,7 @@
 when defined(Linux):
-  const Lib = "libchipmunk.so.6.0.3"
+  const Lib = "libchipmunk.so"
 else:
-  echo("Platform unsupported")
-  quit(1)    
+  {.error: "Platform unsupported".}
 const 
   CP_BUFFER_BYTES* = (32 * 1024)  
   CP_MAX_CONTACTS_PER_ARBITER* = 4
@@ -109,40 +108,41 @@ type
       cdecl.}
   #/ Spatial segment query callback function type.
   TSpatialIndexSegmentQueryFunc* = proc (obj1: pointer; obj2: pointer; 
-      data: pointer): Float{.cdecl.}
+      data: pointer): cdouble {.cdecl.}
   #/ private
   PSpatialIndex = ptr TSpatialIndex
   TSpatialIndex{.pure, final.} = object 
-    klass: ptr TSpatialIndexClass
+    klass: PSpatialIndexClass
     bbfunc: TSpatialIndexBBFunc
-    staticIndex: ptr TSpatialIndex
-    dynamicIndex: ptr TSpatialIndex
+    staticIndex: PSpatialIndex
+    dynamicIndex: PSpatialIndex
 
-  TSpatialIndexDestroyImpl* = proc (index: ptr TSpatialIndex){.cdecl.}
-  TSpatialIndexCountImpl* = proc (index: ptr TSpatialIndex): cint{.cdecl.}
-  TSpatialIndexEachImpl* = proc (index: ptr TSpatialIndex; 
+  TSpatialIndexDestroyImpl* = proc (index: PSpatialIndex){.cdecl.}
+  TSpatialIndexCountImpl* = proc (index: PSpatialIndex): cint{.cdecl.}
+  TSpatialIndexEachImpl* = proc (index: PSpatialIndex; 
                                  func: TSpatialIndexIteratorFunc; data: pointer){.
       cdecl.}
-  TSpatialIndexContainsImpl* = proc (index: ptr TSpatialIndex; obj: pointer; 
+  TSpatialIndexContainsImpl* = proc (index: PSpatialIndex; obj: pointer; 
                                      hashid: THashValue): Bool32 {.cdecl.}
-  TSpatialIndexInsertImpl* = proc (index: ptr TSpatialIndex; obj: pointer; 
+  TSpatialIndexInsertImpl* = proc (index: PSpatialIndex; obj: pointer; 
                                    hashid: THashValue){.cdecl.}
-  TSpatialIndexRemoveImpl* = proc (index: ptr TSpatialIndex; obj: pointer; 
+  TSpatialIndexRemoveImpl* = proc (index: PSpatialIndex; obj: pointer; 
                                    hashid: THashValue){.cdecl.}
-  TSpatialIndexReindexImpl* = proc (index: ptr TSpatialIndex){.cdecl.}
-  TSpatialIndexReindexObjectImpl* = proc (index: ptr TSpatialIndex; 
+  TSpatialIndexReindexImpl* = proc (index: PSpatialIndex){.cdecl.}
+  TSpatialIndexReindexObjectImpl* = proc (index: PSpatialIndex; 
       obj: pointer; hashid: THashValue){.cdecl.}
-  TSpatialIndexReindexQueryImpl* = proc (index: ptr TSpatialIndex; 
+  TSpatialIndexReindexQueryImpl* = proc (index: PSpatialIndex; 
       func: TSpatialIndexQueryFunc; data: pointer){.cdecl.}
-  TSpatialIndexPointQueryImpl* = proc (index: ptr TSpatialIndex; point: TVector; 
+  TSpatialIndexPointQueryImpl* = proc (index: PSpatialIndex; point: TVector; 
                                        func: TSpatialIndexQueryFunc; 
                                        data: pointer){.cdecl.}
-  TSpatialIndexSegmentQueryImpl* = proc (index: ptr TSpatialIndex; obj: pointer; 
+  TSpatialIndexSegmentQueryImpl* = proc (index: PSpatialIndex; obj: pointer; 
       a: TVector; b: TVector; t_exit: cdouble; func: TSpatialIndexSegmentQueryFunc; 
       data: pointer){.cdecl.}
-  TSpatialIndexQueryImpl* = proc (index: ptr TSpatialIndex; obj: pointer; 
+  TSpatialIndexQueryImpl* = proc (index: PSpatialIndex; obj: pointer; 
                                   bb: TBB; func: TSpatialIndexQueryFunc; 
                                   data: pointer){.cdecl.}
+  PSpatialIndexClass* = ptr TSpatialIndexClass
   TSpatialIndexClass*{.pure, final.} = object 
     destroy*: TSpatialIndexDestroyImpl
     count*: TSpatialIndexCountImpl
@@ -156,6 +156,13 @@ type
     pointQuery*: TSpatialIndexPointQueryImpl
     segmentQuery*: TSpatialIndexSegmentQueryImpl
     query*: TSpatialIndexQueryImpl
+  
+  PSpaceHash* = ptr TSpaceHash
+  TSpaceHash* {.pure, final.} = object
+  PBBTree* = ptr TBBTree
+  TBBTree* {.pure, final.} = object
+  PSweep1D* = ptr TSweep1D
+  TSweep1D* {.pure, final.} = object
 
   PContactBufferHeader* = ptr TContentBufferHeader
   TContentBufferHeader* {.pure, final.} = object
@@ -218,6 +225,17 @@ type
     arbiterList*: PArbiter
     constraintList*: PConstraint
     node*: TComponentNode
+  #/ Body/shape iterator callback function type. 
+  TBodyShapeIteratorFunc* = proc (body: PBody; shape: PShape; 
+                                   data: pointer) {.cdecl.}
+  #/ Body/constraint iterator callback function type. 
+  TBodyConstraintIteratorFunc* = proc (body: PBody; 
+                                        constraint: PConstraint; 
+                                        data: pointer) {.cdecl.}
+  #/ Body/arbiter iterator callback function type. 
+  TBodyArbiterIteratorFunc* = proc (body: PBody; arbiter: PArbiter; 
+                                     data: pointer)
+
   #/ Segment query info struct.
   PSegmentQueryInfo* = ptr TSegmentQueryInfo
   TSegmentQueryInfo*{.pure, final.} = object 
@@ -260,7 +278,7 @@ type
   TCircleShape*{.pure, final.} = object
 
 #/ Version string.
-var VersionString*{.importc: "cpVersionString", dynlib: Lib.}: cstring
+#var VersionString*{.importc: "cpVersionString", dynlib: Lib.}: cstring
 #/ Calculate the moment of inertia for a circle.
 #/ @c r1 and @c r2 are the inner and outer diameters. A solid circle has an inner diameter of 0.
 proc MomentForCircle*(m, r1, r2: cdouble; offset: TVector): cdouble {.
@@ -299,10 +317,10 @@ proc MomentForBox2*(m: cdouble; box: TBB): cdouble {.
 
 ##cp property emulators
 template defGetter(otype: typedesc, memberType: typedesc, memberName: expr, procName: expr): stmt {.immediate.} =
-  proc `get procName`*(obj: otype): memberType =
+  proc `get procName`*(obj: otype): memberType {.cdecl.} =
     return obj.memberName
 template defSetter(otype: typedesc, memberType: typedesc, memberName: expr, procName: expr): stmt {.immediate.} =
-  proc `set procName`*(obj: otype, value: memberType) =
+  proc `set procName`*(obj: otype, value: memberType) {.cdecl.} =
     obj.memberName = value
 template defProp(otype: typedesc, memberType: typedesc, memberName: expr, procName: expr): stmt {.immediate.} =
   defGetter(otype, memberType, memberName, procName)
@@ -320,6 +338,115 @@ proc destroy*(space: PSpace) {.
   importc: "cpSpaceDestroy", dynlib: Lib.}
 proc free*(space: PSpace) {.
   importc: "cpSpaceFree", dynlib: Lib.}
+
+
+#/ Convenience constructor for cpVect structs.
+proc newVector*(x, y: cdouble): TVector {.inline.} =
+  result.x = x
+  result.y = y
+
+let VectorZero* = newVector(0.0, 0.0)
+
+#/ Returns the length of v.
+proc len*(v: TVector): cdouble {.
+  cdecl, importc: "cpvlength", dynlib: Lib.}
+#/ Spherical linearly interpolate between v1 and v2.
+proc slerp*(v1, v2: TVector; t: cdouble): TVector {.
+  cdecl, importc: "cpvslerp", dynlib: Lib.}
+#/ Spherical linearly interpolate between v1 towards v2 by no more than angle a radians
+proc slerpconst*(v1, v2: TVector; a: cdouble): TVector {.
+  cdecl, importc: "cpvslerpconst", dynlib: Lib.}
+#/ Returns the unit length vector for the given angle (in radians).
+proc vectorForAngle*(a: cdouble): TVector {.
+  cdecl, importc: "cpvforangle", dynlib: Lib.}
+#/ Returns the angular direction v is pointing in (in radians).
+proc toAngle*(v: TVector): cdouble {.
+  cdecl, importc: "cpvtoangle", dynlib: Lib.}
+#/	Returns a string representation of v. Intended mostly for debugging purposes and not production use.
+#/	@attention The string points to a static local and is reset every time the function is called.
+#/	If you want to print more than one vector you will have to split up your printing onto separate lines.
+proc `$`*(v: TVector): cstring {.cdecl, importc: "cpvstr", dynlib: Lib.}
+
+
+#/ Check if two vectors are equal. (Be careful when comparing floating point numbers!)
+proc `==`*(v1, v2: TVector): bool {.inline.} =
+  result = v1.x == v2.x and v1.y == v2.y
+
+#/ Add two vectors
+proc `+`*(v1, v2: TVector): TVector {.inline.} =
+  result = newVector(v1.x + v2.x, v1.y + v2.y)
+
+#/ Subtract two vectors.
+proc `-`*(v1, v2: TVector): TVector {.inline.} =
+  result = newVector(v1.x - v2.x, v1.y - v2.y)
+
+#/ Negate a vector.
+proc `-`*(v: TVector): TVector {.inline.} = 
+  result = newVector(- v.x, - v.y)
+
+#/ Scalar multiplication.
+proc `*`*(v: TVector, s: cdouble): TVector {.inline.} =
+  result = newVector(v.x * s, v.y * s)
+
+#/ Vector dot product.
+proc dot*(v1, v2: TVector): cdouble {.inline.} = 
+  result = v1.x * v2.x + v1.y * v2.y
+
+#/ 2D vector cross product analog.
+#/ The cross product of 2D vectors results in a 3D vector with only a z component.
+#/ This function returns the magnitude of the z value.
+proc cross*(v1, v2: TVector): cdouble {.inline.} = 
+  result = v1.x * v2.y - v1.y * v2.x
+
+#/ Returns a perpendicular vector. (90 degree rotation)
+proc perp*(v: TVector): TVector {.inline.} = 
+  result = newVector(- v.y, v.x)
+
+#/ Returns a perpendicular vector. (-90 degree rotation)
+proc rperp*(v: TVector): TVector {.inline.} = 
+  result = newVector(v.y, - v.x)
+
+#/ Returns the vector projection of v1 onto v2.
+proc project*(v1,v2: TVector): TVector {.inline.} = 
+  result = v2 * (v1.dot(v2) / v2.dot(v2))
+
+#/ Uses complex number multiplication to rotate v1 by v2. Scaling will occur if v1 is not a unit vector.
+
+proc rotate*(v1, v2: TVector): TVector {.inline.} = 
+  result = newVector(v1.x * v2.x - v1.y * v2.y, v1.x * v2.y + v1.y * v2.x)
+#/ Inverse of cpvrotate().
+proc unrotate*(v1, v2: TVector): TVector {.inline.} = 
+  result = newVector(v1.x * v2.x + v1.y * v2.y, v1.y * v2.x - v1.x * v2.y)
+#/ Returns the squared length of v. Faster than cpvlength() when you only need to compare lengths.
+proc lenSq*(v: TVector): cdouble {.inline.} = 
+  result = v.dot(v)
+#/ Linearly interpolate between v1 and v2.
+proc lerp*(v1, v2: TVector; t: cdouble): TVector {.inline.} = 
+  result = (v1 * (1.0 - t)) + (v2 * t)
+#/ Returns a normalized copy of v.
+proc normalize*(v: TVector): TVector {.inline.} = 
+  result = v * (1.0 / v.len)
+#/ Returns a normalized copy of v or cpvzero if v was already cpvzero. Protects against divide by zero errors.
+proc normalizeSafe*(v: TVector): TVector {.inline.} = 
+  result = if v.x == 0.0 and v.y == 0.0: VectorZero else: v.normalize
+#/ Clamp v to length len.
+proc clamp*(v: TVector; len: cdouble): TVector {.inline.} = 
+  result = if v.dot(v) > len * len: v.normalize * len else: v
+#/ Linearly interpolate between v1 towards v2 by distance d.
+proc lerpconst*(v1, v2: TVector; d: cdouble): TVector {.inline.} = 
+  result = v1 + clamp(v2 - v1, d)             #vadd(v1 + vclamp(vsub(v2, v1), d))
+#/ Returns the distance between v1 and v2.
+proc dist*(v1, v2: TVector): cdouble {.inline.} = 
+  result = (v1 - v2).len #vlength(vsub(v1, v2))
+#/ Returns the squared distance between v1 and v2. Faster than cpvdist() when you only need to compare distances.
+proc distsq*(v1, v2: TVector): cdouble {.inline.} = 
+  result = (v1 - v2).lenSq  #vlengthsq(vsub(v1, v2))
+#/ Returns true if the distance between v1 and v2 is less than dist.
+proc near*(v1, v2: TVector; dist: cdouble): Bool{.inline.} = 
+  result = v1.distSq(v2) < dist * dist
+
+
+
 
 
 ##cpBody.h
@@ -370,13 +497,13 @@ proc isRogue*(body: PBody): Bool {.inline.} =
 # CP_DefineBodyStructGetter(type, member, name) \
 # CP_DefineBodyStructSetter(type, member, name)
 
-defGetter(PBody, m, cdouble, Mass)
+defGetter(PBody, cdouble, m, Mass)
 #/ Set the mass of a body.
 proc setMass*(body: PBody; m: cdouble){.
   importc: "cpBodySetMass", dynlib: Lib.}
 
 #/ Get the moment of a body.
-defGetter(PBody, i, cdouble, Moment)
+defGetter(PBody, cdouble, i, Moment)
 #/ Set the moment of a body.
 proc SetMoment*(body: PBody; i: cdouble) {.
   importc: "cpBodySetMoment", dynlib: Lib.}
@@ -410,11 +537,11 @@ proc UpdatePosition*(body: PBody; dt: cdouble){.
   importc: "cpBodyUpdatePosition", dynlib: Lib.}
 #/ Convert body relative/local coordinates to absolute/world coordinates.
 proc Local2World*(body: PBody; v: TVector): TVector{.inline.} = 
-  return cpvadd(body.p, cpvrotate(v, body.rot))
+  result = body.p + v.rotate(body.rot) ##return cpvadd(body.p, cpvrotate(v, body.rot))
 
 #/ Convert body absolute/world coordinates to  relative/local coordinates.
 proc cpBodyWorld2Local*(body: PBody; v: TVector): TVector{.inline.} = 
-  return cpvunrotate(cpvsub(v, body.p), body.rot)
+  result = (v - body.p).unrotate(body.rot)
 
 #/ Set the forces and torque or a body to zero.
 
@@ -444,39 +571,26 @@ proc cpBodyGetVelAtLocalPoint*(body: PBody; point: TVector): TVector{.
 # 	cpFloat wsq = body->w*body->w;
 # 	return (vsq ? vsq*body->m : 0.0f) + (wsq ? wsq*body->i : 0.0f);
 # }
-#/ Body/shape iterator callback function type. 
 
-type 
-  cpBodyShapeIteratorFunc* = proc (body: PBody; shape: ptr cpShape; 
-                                   data: pointer)
+
+
+
 
 #/ Call @c func once for each shape attached to @c body and added to the space.
-
-proc cpBodyEachShape*(body: PBody; func: cpBodyShapeIteratorFunc; 
-                      data: pointer){.importc: "cpBodyEachShape", dynlib: Lib.}
-#/ Body/constraint iterator callback function type. 
-
-type 
-  cpBodyConstraintIteratorFunc* = proc (body: PBody; 
-                                        constraint: ptr cpConstraint; 
-                                        data: pointer)
+proc eachShape*(body: PBody; func: TBodyShapeIteratorFunc; 
+                      data: pointer){.
+  cdecl, importc: "cpBodyEachShape", dynlib: Lib.}
 
 #/ Call @c func once for each constraint attached to @c body and added to the space.
-
-proc cpBodyEachConstraint*(body: PBody; func: cpBodyConstraintIteratorFunc; 
-                           data: pointer){.importc: "cpBodyEachConstraint", 
-    dynlib: Lib.}
-#/ Body/arbiter iterator callback function type. 
-
-type 
-  cpBodyArbiterIteratorFunc* = proc (body: PBody; arbiter: ptr cpArbiter; 
-                                     data: pointer)
+proc eachConstraint*(body: PBody; func: TBodyConstraintIteratorFunc; 
+                           data: pointer) {.
+  cdecl, importc: "cpBodyEachConstraint", dynlib: Lib.}
 
 #/ Call @c func once for each arbiter that is currently active on the body.
 
-proc cpBodyEachArbiter*(body: PBody; func: cpBodyArbiterIteratorFunc; 
-                        data: pointer){.importc: "cpBodyEachArbiter", 
-                                        dynlib: Lib.}
+proc eachArbiter*(body: PBody; func: TBodyArbiterIteratorFunc; 
+                        data: pointer){.
+  cdecl, importc: "cpBodyEachArbiter", dynlib: Lib.}
 #/@}
 
 
@@ -524,11 +638,11 @@ proc BBTreeOptimize*(index: ptr TSpatialIndex){.cdecl,
 #/ This function should return an estimate for the object's velocity.
 
 type 
-  TBBTreeVelocityFunc* = proc (obj: pointer): Vect{.cdecl.}
+  TBBTreeVelocityFunc* = proc (obj: pointer): TVector {.cdecl.}
 
 #/ Set the velocity function for the bounding box tree to enable temporal coherence.
 
-proc BBTreeSetVelocityFunc*(index: ptr TSpatialIndex; func: TBBTreeVelocityFunc){.
+proc BBTreeSetVelocityFunc*(index: PSpatialIndex; func: TBBTreeVelocityFunc){.
     cdecl, importc: "cpBBTreeSetVelocityFunc", dynlib: Lib.}
 #MARK: Single Axis Sweep
 
@@ -551,7 +665,7 @@ proc Sweep1DNew*(bbfunc: TSpatialIndexBBFunc; staticIndex: ptr TSpatialIndex): p
 
 defProp(PArbiter, cdouble, e, Elasticity)
 defProp(PArbiter, cdouble, u, Friction)
-depProp(PArbiter, TVector, surface_vr, SurfaceVelocity)
+defProp(PArbiter, TVector, surface_vr, SurfaceVelocity)
 
 #/ Calculate the total impulse that was applied by this 
 #/ This function should only be called from a post-solve, post-step or cpBodyEachArbiter callback.
@@ -592,10 +706,10 @@ template getShapes*(arb: PArbiter, name1, name2: expr): stmt {.immediate.} =
 #/ Return the colliding bodies involved for this arbiter.
 #/ The order of the cpSpace.collision_type the bodies are associated with values will match
 #/ the order set when the collision handler was registered.
-proc getBodies*(arb: PArbiter, a, b: var PBody) {.inline.} = 
-  getShapes(arb, shape1, shape2)
-  a = shape1.body
-  b = shape2.body
+#proc getBodies*(arb: PArbiter, a, b: var PBody) {.inline.} = 
+#  getShapes(arb, shape1, shape2)
+#  a = shape1.body
+#  b = shape2.body
 
 #/ A macro shortcut for defining and retrieving the bodies from an arbiter.
 #define CP_ARBITER_GET_BODIES(arb, a, b) cpBody *a, *b; cpArbiterGetBodies(arb, &a, &b);
@@ -603,8 +717,8 @@ template getBodies*(arb: PArbiter, name1, name2: expr): stmt {.immediate.} =
   var name1, name2: PBOdy
   getBodies(arb, name1, name2)
 
-proc isFirstContact*(arb: PArbiter): bool32 {.inline.} =
-  result = arb.state == FirstColl
+proc isFirstContact*(arb: PArbiter): bool {.inline.} =
+  result = arb.state == ArbiterStateFirstColl
 
 proc getCount*(arb: PArbiter): cint {.inline.} =
   result = arb.numContacts
@@ -624,7 +738,7 @@ proc getDepth*(arb: PArbiter; i: cint): cdouble {.
 
 ##Shapes
 template defShapeSetter(memberType: typedesc, memberName: expr, procName: expr, activates: bool): stmt {.immediate.} =
-  proc `set procName`*(obj: PShape, value: memberType) =
+  proc `set procName`*(obj: PShape, value: memberType) {.cdecl.} =
     if activates and obj.body != nil: obj.body.activate()
     obj.memberName = value
 template defShapeProp(memberType: typedesc, memberName: expr, procName: expr, activates: bool): stmt {.immediate.} =
@@ -639,7 +753,7 @@ proc free*(shape: PShape){.
   cdecl, importc: "cpShapeFree", dynlib: Lib.}
 #/ Update, cache and return the bounding box of a shape based on the body it's attached to.
 proc cacheBB*(shape: PShape): TBB{.
-cdecl, importc: "cpShapeCacheBB", dynlib: Lib.}
+  cdecl, importc: "cpShapeCacheBB", dynlib: Lib.}
 #/ Update, cache and return the bounding box of a shape with an explicit transformation.
 proc update*(shape: PShape; pos: TVector; rot: TVector): TBB {.
   cdecl, importc: "cpShapeUpdate", dynlib: Lib.}
