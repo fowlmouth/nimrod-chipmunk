@@ -1,4 +1,3 @@
-
 when defined(Linux):
   const Lib = "libchipmunk.so.6.1.1"
 else:
@@ -8,18 +7,22 @@ const
   CP_BUFFER_BYTES* = (32 * 1024)  
   CP_MAX_CONTACTS_PER_ARBITER* = 4
   CpInfinity: cfloat = 1.0/0
+when defined(CpUseFloat):
+  type CpFloat = float32
+else:
+  type CpFloat = float64
 type 
   Bool32* = cint  #replace one day with cint-compatible bool
   TVector* {.final, pure.} = object
-    x*, y*: cdouble
+    x*, y*: CpFloat
   TTimestamp* = cuint
   TBodyVelocityFunc* = proc(body: PBody, gravity: TVector,
-                            damping: cdouble; dt: cdouble)
-  TBodyPositionFunc* = proc(body: PBody; dt: cdouble)
+                            damping: CpFloat; dt: CpFloat)
+  TBodyPositionFunc* = proc(body: PBody; dt: CpFloat)
   TComponentNode*{.pure, final.} = object 
     root*: PBody
     next*: PBody
-    idleTime*: cdouble
+    idleTime*: CpFloat
   
   THashValue = cuint  # uintptr_t 
   TCollisionType = cuint #uintptr_t
@@ -35,8 +38,8 @@ type
   TConstraint*{.pure, final.} = object
   PArbiter* = ptr TArbiter
   TArbiter*{.pure, final.} = object 
-    e*: cdouble
-    u*: cdouble 
+    e*: CpFloat
+    u*: CpFloat 
     surface_vr*: TVector
     a*: PShape
     b*: PShape
@@ -72,7 +75,7 @@ type
   TContactPoint*{.pure, final.} = object 
     point*: TVector    #/ The position of the contact point.
     normal*: TVector   #/ The normal of the contact point.
-    dist*: cdouble     #/ The depth of the contact point.
+    dist*: CpFloat     #/ The depth of the contact point.
   #/ A struct that wraps up the important collision data for an arbiter.
   PContactPointSet* = ptr TContactPointSet
   TContactPointSet*{.pure, final.} = object 
@@ -98,7 +101,7 @@ type
   #/ Chipmunk's axis-aligned 2D bounding box type. (left, bottom, right, top)
   PBB* = ptr TBB
   TBB* {.pure, final.} = object 
-    l*, b*, r*, t*: cdouble
+    l*, b*, r*, t*: CpFloat
   
   #/ Spatial index bounding box callback function type.
   #/ The spatial index calls this function and passes you a pointer to an object you added
@@ -111,7 +114,7 @@ type
       cdecl.}
   #/ Spatial segment query callback function type.
   TSpatialIndexSegmentQueryFunc* = proc (obj1: pointer; obj2: pointer; 
-      data: pointer): cdouble {.cdecl.}
+      data: pointer): CpFloat {.cdecl.}
   #/ private
   PSpatialIndex = ptr TSpatialIndex
   TSpatialIndex{.pure, final.} = object 
@@ -140,7 +143,7 @@ type
                                        func: TSpatialIndexQueryFunc; 
                                        data: pointer){.cdecl.}
   TSpatialIndexSegmentQueryImpl* = proc (index: PSpatialIndex; obj: pointer; 
-      a: TVector; b: TVector; t_exit: cdouble; func: TSpatialIndexSegmentQueryFunc; 
+      a: TVector; b: TVector; t_exit: CpFloat; func: TSpatialIndexSegmentQueryFunc; 
       data: pointer){.cdecl.}
   TSpatialIndexQueryImpl* = proc (index: PSpatialIndex; obj: pointer; 
                                   bb: TBB; func: TSpatialIndexQueryFunc; 
@@ -166,7 +169,11 @@ type
   TBBTree* {.pure, final.} = object
   PSweep1D* = ptr TSweep1D
   TSweep1D* {.pure, final.} = object
-
+  
+  #/ Bounding box tree velocity callback function.
+  #/ This function should return an estimate for the object's velocity.
+  TBBTreeVelocityFunc* = proc (obj: pointer): TVector {.cdecl.}
+  
   PContactBufferHeader* = ptr TContentBufferHeader
   TContentBufferHeader* {.pure, final.} = object
   TSpaceArbiterApplyImpulseFunc* = proc (arb: PArbiter){.cdecl.}
@@ -175,17 +182,17 @@ type
   TSpace* {.pure, final.} = object
     iterations*: cint 
     gravity*: TVector
-    damping*: cdouble
-    idleSpeedThreshold*: cdouble 
-    sleepTimeThreshold*: cdouble 
-    collisionSlop*: cdouble 
-    collisionBias*: cdouble
+    damping*: CpFloat
+    idleSpeedThreshold*: CpFloat 
+    sleepTimeThreshold*: CpFloat 
+    collisionSlop*: CpFloat 
+    collisionBias*: CpFloat
     collisionPersistence*: TTimestamp        
     enableContactGraph*: cint ##BOOL
     data*: pointer
     staticBody*: PBody
     stamp: TTimestamp
-    currDT: cdouble
+    currDT: CpFloat
     bodies: PArray
     rousedBodies: PArray
     sleepingComponents: PArray
@@ -207,22 +214,22 @@ type
   TBody*{.pure, final.} = object 
     velocityFunc*: TBodyVelocityFunc 
     positionFunc*: TBodyPositionFunc                                       
-    m*: cdouble           
-    mInv*: cdouble       
-    i*: cdouble           
-    iInv*: cdouble       
+    m*: CpFloat           
+    mInv*: CpFloat       
+    i*: CpFloat           
+    iInv*: CpFloat       
     p*: TVector            
     v*: TVector            
     f*: TVector 
-    a*: cdouble 
-    w*: cdouble 
-    t*: cdouble 
+    a*: CpFloat 
+    w*: CpFloat 
+    t*: CpFloat 
     rot*: TVector 
     data*: pointer
-    vLimit*: cdouble   
-    wLimit*: cdouble
+    vLimit*: CpFloat   
+    wLimit*: CpFloat
     vBias*: TVector
-    wBias*: cdouble
+    wBias*: CpFloat
     space*: PSpace
     shapeList*: PShape
     arbiterList*: PArbiter
@@ -244,13 +251,13 @@ type
   TNearestPointQueryInfo*{.pure, final.} = object
     shape: PShape  #/ The nearest shape, NULL if no shape was within range.
     p: TVector     #/ The closest point on the shape's surface. (in world space coordinates)
-    d: cdouble      #/ The distance to the point. The distance is negative if the point is inside the shape.
+    d: CpFloat      #/ The distance to the point. The distance is negative if the point is inside the shape.
   
   PSegmentQueryInfo* = ptr TSegmentQueryInfo
   #/ Segment query info struct.
   TSegmentQueryInfo*{.pure, final.} = object 
     shape*: PShape         #/ The shape that was hit, NULL if no collision occured.
-    t*: cdouble            #/ The normalized distance along the query segment in the range [0, 1].
+    t*: CpFloat            #/ The normalized distance along the query segment in the range [0, 1].
     n*: TVector            #/ The normal of the surface hit.
   TShapeType*{.size: sizeof(cint).} = enum 
     CP_CIRCLE_SHAPE, CP_SEGMENT_SHAPE, CP_POLY_SHAPE, CP_NUM_SHAPES
@@ -273,8 +280,8 @@ type
     bb*: TBB               #/ The current bounding box of the shape.   
     sensor*: Bool32        #/ Sensor flag.
                            #/ Sensor shapes call collision callbacks but don't produce collisions.  
-    e*: cdouble            #/ Coefficient of restitution. (elasticity)
-    u*: cdouble            #/ Coefficient of friction.
+    e*: CpFloat            #/ Coefficient of restitution. (elasticity)
+    u*: CpFloat            #/ Coefficient of friction.
     surface_v*: TVector    #/ Surface velocity used when solving for friction.
     data*: pointer        #/ User definable data pointer. Generally this points to your the game object class so you can access it when given a cpShape reference in a callback.
     collision_type*: TCollisionType #/ Collision type of this shape used when picking collision handlers.
@@ -288,13 +295,13 @@ type
   TCircleShape*{.pure, final.} = object
     shape: PShape
     c, tc: TVector
-    r: cdouble
+    r: CpFloat
   PSegmentShape* = ptr TSegmentShape
   TSegmentShape*{.pure, final.} = object
     shape: PShape
     a, b, n: TVector
     ta, tb, tn: TVector
-    r: cdouble
+    r: CpFloat
     aTangent, bTangent: TVector
   
   #/ Post Step callback function type.
@@ -302,7 +309,7 @@ type
   #/ Point query callback function type.
   TSpacePointQueryFunc* = proc (shape: PShape; data: pointer){.cdecl.}
   #/ Segment query callback function type.
-  TSpaceSegmentQueryFunc* = proc (shape: PShape; t: cdouble; n: TVector; 
+  TSpaceSegmentQueryFunc* = proc (shape: PShape; t: CpFloat; n: TVector; 
                                   data: pointer){.cdecl.}
   #/ Rectangle Query callback function type.
   TSpaceBBQueryFunc* = proc (shape: PShape; data: pointer){.cdecl.}
@@ -321,26 +328,26 @@ type
 #var VersionString*{.importc: "cpVersionString", dynlib: Lib.}: cstring
 #/ Calculate the moment of inertia for a circle.
 #/ @c r1 and @c r2 are the inner and outer diameters. A solid circle has an inner diameter of 0.
-proc MomentForCircle*(m, r1, r2: cdouble; offset: TVector): cdouble {.
+proc MomentForCircle*(m, r1, r2: CpFloat; offset: TVector): CpFloat {.
   cdecl, importc: "cpMomentForCircle", dynlib: Lib.}
 
 #/ Calculate area of a hollow circle.
 #/ @c r1 and @c r2 are the inner and outer diameters. A solid circle has an inner diameter of 0.
-proc AreaForCircle*(r1: cdouble; r2: cdouble): cdouble {.
+proc AreaForCircle*(r1: CpFloat; r2: CpFloat): CpFloat {.
   cdecl, importc: "cpAreaForCircle", dynlib: Lib.}
 #/ Calculate the moment of inertia for a line segment.
 #/ Beveling radius is not supported.
-proc MomentForSegment*(m: cdouble; a, b: TVector): cdouble {.
+proc MomentForSegment*(m: CpFloat; a, b: TVector): CpFloat {.
   cdecl, importc: "cpMomentForSegment", dynlib: Lib.}
 #/ Calculate the area of a fattened (capsule shaped) line segment.
-proc AreaForSegment*(a, b: TVector; r: cdouble): cdouble {.
+proc AreaForSegment*(a, b: TVector; r: CpFloat): CpFloat {.
   cdecl, importc: "cpAreaForSegment", dynlib: Lib.}
 #/ Calculate the moment of inertia for a solid polygon shape assuming it's center of gravity is at it's centroid. The offset is added to each vertex.
-proc MomentForPoly*(m: cdouble; numVerts: cint; verts: ptr TVector; offset: TVector): cdouble {.
+proc MomentForPoly*(m: CpFloat; numVerts: cint; verts: ptr TVector; offset: TVector): CpFloat {.
   cdecl, importc: "cpMomentForPoly", dynlib: Lib.}
 #/ Calculate the signed area of a polygon. A Clockwise winding gives positive area.
 #/ This is probably backwards from what you expect, but matches Chipmunk's the winding for poly shapes.
-proc AreaForPoly*(numVerts: cint; verts: ptr TVector): cdouble {.
+proc AreaForPoly*(numVerts: cint; verts: ptr TVector): CpFloat {.
   cdecl, importc: "cpAreaForPoly", dynlib: Lib.}
 #/ Calculate the natural centroid of a polygon.
 proc CentroidForPoly*(numVerts: cint; verts: ptr TVector): TVector {.
@@ -349,10 +356,10 @@ proc CentroidForPoly*(numVerts: cint; verts: ptr TVector): TVector {.
 proc RecenterPoly*(numVerts: cint; verts: ptr TVector) {.
   cdecl, importc: "cpRecenterPoly", dynlib: Lib.}
 #/ Calculate the moment of inertia for a solid box.
-proc MomentForBox*(m, width, height: cdouble): cdouble {.
+proc MomentForBox*(m, width, height: CpFloat): CpFloat {.
   cdecl, importc: "cpMomentForBox", dynlib: Lib.}
 #/ Calculate the moment of inertia for a solid box.
-proc MomentForBox2*(m: cdouble; box: TBB): cdouble {.
+proc MomentForBox2*(m: CpFloat; box: TBB): CpFloat {.
   cdecl, importc: "cpMomentForBox2", dynlib: Lib.}
 
 ##cp property emulators
@@ -381,16 +388,16 @@ proc free*(space: PSpace) {.
 
 defProp(PSpace, cint, iterations, Iterations)
 defProp(PSpace, TVector, gravity, Gravity)
-defProp(PSpace, cdouble, damping, Damping)
-defProp(PSpace, cdouble, idleSpeedThreshold, IdleSpeedThreshold)
-defProp(PSpace, cdouble, sleepTimeThreshold, SleepTimeThreshold)
-defProp(PSpace, cdouble, collisionSlop, CollisionSlop)
-defProp(PSpace, cdouble, collisionBias, CollisionBias)
+defProp(PSpace, CpFloat, damping, Damping)
+defProp(PSpace, CpFloat, idleSpeedThreshold, IdleSpeedThreshold)
+defProp(PSpace, CpFloat, sleepTimeThreshold, SleepTimeThreshold)
+defProp(PSpace, CpFloat, collisionSlop, CollisionSlop)
+defProp(PSpace, CpFloat, collisionBias, CollisionBias)
 defProp(PSpace, TTimestamp, collisionPersistence, CollisionPersistence)
 defProp(PSpace, Bool32, enableContactGraph, EnableContactGraph)
 defProp(PSpace, pointer, data, UserData)
 defGetter(PSpace, PBody, staticBody, StaticBody)
-defGetter(PSpace, cdouble, currDt, CurrentTimeStep)
+defGetter(PSpace, CpFloat, currDt, CurrentTimeStep)
 
 
 #/ returns true from inside a callback and objects cannot be added/removed.
@@ -516,42 +523,42 @@ proc reindexShape*(space: PSpace; shape: PShape){.
 proc reindexShapesForBody*(space: PSpace; body: PBody){.
   cdecl, importc: "cpSpaceReindexShapesForBody", dynlib: Lib.}
 #/ Switch the space to use a spatial has as it's spatial index.
-proc SpaceUseSpatialHash*(space: PSpace; dim: cdouble; count: cint){.
+proc SpaceUseSpatialHash*(space: PSpace; dim: CpFloat; count: cint){.
   cdecl, importc: "cpSpaceUseSpatialHash", dynlib: Lib.}
 #/ Step the space forward in time by @c dt.
-proc step*(space: PSpace; dt: cdouble) {.
+proc step*(space: PSpace; dt: CpFloat) {.
   cdecl, importc: "cpSpaceStep", dynlib: Lib.}
 
 
 #/ Convenience constructor for cpVect structs.
-proc newVector*(x, y: cdouble): TVector {.inline.} =
+proc newVector*(x, y: CpFloat): TVector {.inline.} =
   result.x = x
   result.y = y
 let VectorZero* = newVector(0.0, 0.0)
 
 
 #/ Vector dot product.
-proc dot*(v1, v2: TVector): cdouble {.inline.} = 
+proc dot*(v1, v2: TVector): CpFloat {.inline.} = 
   result = v1.x * v2.x + v1.y * v2.y
 
 #/ Returns the length of v.
-#proc len*(v: TVector): cdouble {.
+#proc len*(v: TVector): CpFloat {.
 #  cdecl, importc: "cpvlength", dynlib: Lib.}
-proc len*(v: TVector): cdouble {.inline.} =
+proc len*(v: TVector): CpFloat {.inline.} =
   result = v.dot(v).sqrt
 #/ Spherical linearly interpolate between v1 and v2.
-proc slerp*(v1, v2: TVector; t: cdouble): TVector {.
+proc slerp*(v1, v2: TVector; t: CpFloat): TVector {.
   cdecl, importc: "cpvslerp", dynlib: Lib.}
 #/ Spherical linearly interpolate between v1 towards v2 by no more than angle a radians
-proc slerpconst*(v1, v2: TVector; a: cdouble): TVector {.
+proc slerpconst*(v1, v2: TVector; a: CpFloat): TVector {.
   cdecl, importc: "cpvslerpconst", dynlib: Lib.}
 #/ Returns the unit length vector for the given angle (in radians).
-#proc vectorForAngle*(a: cdouble): TVector {.
+#proc vectorForAngle*(a: CpFloat): TVector {.
 #  cdecl, importc: "cpvforangle", dynlib: Lib.}
-proc vectorForAngle*(a: cdouble): TVector {.inline.} =
+proc vectorForAngle*(a: CpFloat): TVector {.inline.} =
   result = newVector(math.cos(a), math.sin(a))
 #/ Returns the angular direction v is pointing in (in radians).
-proc toAngle*(v: TVector): cdouble {.inline.} =
+proc toAngle*(v: TVector): CpFloat {.inline.} =
   result = math.arctan2(v.y, v.x)
 #/	Returns a string representation of v. Intended mostly for debugging purposes and not production use.
 #/	@attention The string points to a static local and is reset every time the function is called.
@@ -576,13 +583,13 @@ proc `-`*(v: TVector): TVector {.inline.} =
   result = newVector(- v.x, - v.y)
 
 #/ Scalar multiplication.
-proc `*`*(v: TVector, s: cdouble): TVector {.inline.} =
+proc `*`*(v: TVector, s: CpFloat): TVector {.inline.} =
   result = newVector(v.x * s, v.y * s)
 
 #/ 2D vector cross product analog.
 #/ The cross product of 2D vectors results in a 3D vector with only a z component.
 #/ This function returns the magnitude of the z value.
-proc cross*(v1, v2: TVector): cdouble {.inline.} = 
+proc cross*(v1, v2: TVector): CpFloat {.inline.} = 
   result = v1.x * v2.y - v1.y * v2.x
 
 #/ Returns a perpendicular vector. (90 degree rotation)
@@ -605,10 +612,10 @@ proc rotate*(v1, v2: TVector): TVector {.inline.} =
 proc unrotate*(v1, v2: TVector): TVector {.inline.} = 
   result = newVector(v1.x * v2.x + v1.y * v2.y, v1.y * v2.x - v1.x * v2.y)
 #/ Returns the squared length of v. Faster than cpvlength() when you only need to compare lengths.
-proc lenSq*(v: TVector): cdouble {.inline.} = 
+proc lenSq*(v: TVector): CpFloat {.inline.} = 
   result = v.dot(v)
 #/ Linearly interpolate between v1 and v2.
-proc lerp*(v1, v2: TVector; t: cdouble): TVector {.inline.} = 
+proc lerp*(v1, v2: TVector; t: CpFloat): TVector {.inline.} = 
   result = (v1 * (1.0 - t)) + (v2 * t)
 #/ Returns a normalized copy of v.
 proc normalize*(v: TVector): TVector {.inline.} = 
@@ -617,19 +624,19 @@ proc normalize*(v: TVector): TVector {.inline.} =
 proc normalizeSafe*(v: TVector): TVector {.inline.} = 
   result = if v.x == 0.0 and v.y == 0.0: VectorZero else: v.normalize
 #/ Clamp v to length len.
-proc clamp*(v: TVector; len: cdouble): TVector {.inline.} = 
+proc clamp*(v: TVector; len: CpFloat): TVector {.inline.} = 
   result = if v.dot(v) > len * len: v.normalize * len else: v
 #/ Linearly interpolate between v1 towards v2 by distance d.
-proc lerpconst*(v1, v2: TVector; d: cdouble): TVector {.inline.} = 
+proc lerpconst*(v1, v2: TVector; d: CpFloat): TVector {.inline.} = 
   result = v1 + clamp(v2 - v1, d)             #vadd(v1 + vclamp(vsub(v2, v1), d))
 #/ Returns the distance between v1 and v2.
-proc dist*(v1, v2: TVector): cdouble {.inline.} = 
+proc dist*(v1, v2: TVector): CpFloat {.inline.} = 
   result = (v1 - v2).len #vlength(vsub(v1, v2))
 #/ Returns the squared distance between v1 and v2. Faster than cpvdist() when you only need to compare distances.
-proc distsq*(v1, v2: TVector): cdouble {.inline.} = 
+proc distsq*(v1, v2: TVector): CpFloat {.inline.} = 
   result = (v1 - v2).lenSq  #vlengthsq(vsub(v1, v2))
 #/ Returns true if the distance between v1 and v2 is less than dist.
-proc near*(v1, v2: TVector; dist: cdouble): Bool{.inline.} = 
+proc near*(v1, v2: TVector; dist: CpFloat): Bool{.inline.} = 
   result = v1.distSq(v2) < dist * dist
 
 
@@ -638,9 +645,9 @@ proc near*(v1, v2: TVector; dist: cdouble): Bool{.inline.} =
 
 ##cpBody.h
 proc allocBody*(): PBody {.importc: "cpBodyAlloc", dynlib: Lib.}
-proc init*(body: PBody; m: cdouble; i: cdouble): PBody {.
+proc init*(body: PBody; m: CpFloat; i: CpFloat): PBody {.
   importc: "cpBodyInit", dynlib: Lib.}
-proc newBody*(m: cdouble; i: cdouble): PBody {.
+proc newBody*(m: CpFloat; i: CpFloat): PBody {.
   importc: "cpBodyNew", dynlib: Lib.}
 
 proc initStaticBody*(body: PBody): PBody{.
@@ -684,15 +691,15 @@ proc isRogue*(body: PBody): Bool {.inline.} =
 # CP_DefineBodyStructGetter(type, member, name) \
 # CP_DefineBodyStructSetter(type, member, name)
 
-defGetter(PBody, cdouble, m, Mass)
+defGetter(PBody, CpFloat, m, Mass)
 #/ Set the mass of a body.
-proc setMass*(body: PBody; m: cdouble){.
+proc setMass*(body: PBody; m: CpFloat){.
   cdecl, importc: "cpBodySetMass", dynlib: Lib.}
 
 #/ Get the moment of a body.
-defGetter(PBody, cdouble, i, Moment)
+defGetter(PBody, CpFloat, i, Moment)
 #/ Set the moment of a body.
-proc SetMoment*(body: PBody; i: cdouble) {.
+proc SetMoment*(body: PBody; i: CpFloat) {.
   cdecl, importc: "cpBodySetMoment", dynlib: Lib.}
 
 #/ Get the position of a body.
@@ -705,55 +712,54 @@ defProp(PBody, TVector, v, Vel)
 defProp(PBody, TVector, f, Force)
 
 #/ Get the angle of a body.
-defGetter(PBody, cdouble, a, Angle)
+defGetter(PBody, CpFloat, a, Angle)
 #/ Set the angle of a body.
-proc setAngle*(body: PBody; a: cdouble){.
+proc setAngle*(body: PBody; a: CpFloat){.
   cdecl, importc: "cpBodySetAngle", dynlib: Lib.}
 
-defProp(PBody, cdouble, w, AngVel)
-defProp(PBody, cdouble, t, Torque)
+defProp(PBody, CpFloat, w, AngVel)
+defProp(PBody, CpFloat, t, Torque)
 defGetter(PBody, TVector, rot, Rot)
-defProp(PBody, cdouble, v_limit, VelLimit)
-defProp(PBody, cdouble, w_limit, AngVelLimit)
+defProp(PBody, CpFloat, v_limit, VelLimit)
+defProp(PBody, CpFloat, w_limit, AngVelLimit)
 defProp(PBody, pointer, data, UserData)
 
 #/ Default Integration functions.
-proc UpdateVelocity*(body: PBody; gravity: TVector; damping: cdouble; dt: cdouble){.
+proc UpdateVelocity*(body: PBody; gravity: TVector; damping: CpFloat; dt: CpFloat){.
   cdecl, importc: "cpBodyUpdateVelocity", dynlib: Lib.}
-proc UpdatePosition*(body: PBody; dt: cdouble){.
+proc UpdatePosition*(body: PBody; dt: CpFloat){.
   cdecl, importc: "cpBodyUpdatePosition", dynlib: Lib.}
 #/ Convert body relative/local coordinates to absolute/world coordinates.
 proc Local2World*(body: PBody; v: TVector): TVector{.inline.} = 
   result = body.p + v.rotate(body.rot) ##return cpvadd(body.p, cpvrotate(v, body.rot))
 #/ Convert body absolute/world coordinates to  relative/local coordinates.
-proc cpBodyWorld2Local*(body: PBody; v: TVector): TVector{.inline.} = 
+proc world2Local*(body: PBody; v: TVector): TVector{.inline.} = 
   result = (v - body.p).unrotate(body.rot)
 #/ Set the forces and torque or a body to zero.
-proc cpBodyResetForces*(body: PBody){.
+proc resetForces*(body: PBody){.
   cdecl, importc: "cpBodyResetForces", dynlib: Lib.}
 #/ Apply an force (in world coordinates) to the body at a point relative to the center of gravity (also in world coordinates).
-proc cpBodyApplyForce*(body: PBody; f, r: TVector){.
+proc applyForce*(body: PBody; f, r: TVector){.
   cdecl, importc: "cpBodyApplyForce", dynlib: Lib.}
 #/ Apply an impulse (in world coordinates) to the body at a point relative to the center of gravity (also in world coordinates).
-proc cpBodyApplyImpulse*(body: PBody; j, r: TVector){.
+proc applyImpulse*(body: PBody; j, r: TVector){.
   cdecl, importc: "cpBodyApplyImpulse", dynlib: Lib.}
 #/ Get the velocity on a body (in world units) at a point on the body in world coordinates.
 
-proc cpBodyGetVelAtWorldPoint*(body: PBody; point: TVector): TVector{.
+proc getVelAtWorldPoint*(body: PBody; point: TVector): TVector{.
   cdecl, importc: "cpBodyGetVelAtWorldPoint", dynlib: Lib.}
 #/ Get the velocity on a body (in world units) at a point on the body in local coordinates.
-
-proc cpBodyGetVelAtLocalPoint*(body: PBody; point: TVector): TVector{.
+proc getVelAtLocalPoint*(body: PBody; point: TVector): TVector{.
   cdecl, importc: "cpBodyGetVelAtLocalPoint", dynlib: Lib.}
 #/ Get the kinetic energy of a body.
-# static inline cdouble cpBodyKineticEnergy(const cpBody *body)
+# static inline CpFloat cpBodyKineticEnergy(const cpBody *body)
 # {
 # 	// Need to do some fudging to avoid NaNs
 # 	cpFloat vsq = cpvdot(body->v, body->v);
 # 	cpFloat wsq = body->w*body->w;
 # 	return (vsq ? vsq*body->m : 0.0f) + (wsq ? wsq*body->i : 0.0f);
 # }
-proc kineticEnergy*(body: PBOdy): cdouble =
+proc kineticEnergy*(body: PBOdy): CpFloat =
   result = (body.v.dot(body.v) * body.m) + (body.w * body.w * body.i)
 
 #/ Call @c func once for each shape attached to @c body and added to the space.
@@ -772,46 +778,34 @@ proc eachArbiter*(body: PBody; func: TBodyArbiterIteratorFunc;
 proc SpaceHashAlloc*(): PSpaceHash{.
   cdecl, importc: "cpSpaceHashAlloc", dynlib: Lib.}
 #/ Initialize a spatial hash. 
-proc SpaceHashInit*(hash: PSpaceHash; celldim: Float; numcells: cint; 
-                    bbfunc: TSpatialIndexBBFunc; staticIndex: ptr TSpatialIndex): ptr TSpatialIndex{.
-    cdecl, importc: "cpSpaceHashInit", dynlib: Lib.}
+proc SpaceHashInit*(hash: PSpaceHash; celldim: CpFloat; numcells: cint; 
+                    bbfunc: TSpatialIndexBBFunc; staticIndex: PSpatialIndex): PSpatialIndex{.
+  cdecl, importc: "cpSpaceHashInit", dynlib: Lib.}
 #/ Allocate and initialize a spatial hash.
-
-proc SpaceHashNew*(celldim: Float; cells: cint; bbfunc: TSpatialIndexBBFunc; 
-                   staticIndex: ptr TSpatialIndex): ptr TSpatialIndex{.cdecl, 
-    importc: "cpSpaceHashNew", dynlib: Lib.}
+proc SpaceHashNew*(celldim: CpFloat; cells: cint; bbfunc: TSpatialIndexBBFunc; 
+                   staticIndex: PSpatialIndex): PSpatialIndex{.
+  cdecl, importc: "cpSpaceHashNew", dynlib: Lib.}
 #/ Change the cell dimensions and table size of the spatial hash to tune it.
 #/ The cell dimensions should roughly match the average size of your objects
 #/ and the table size should be ~10 larger than the number of objects inserted.
 #/ Some trial and error is required to find the optimum numbers for efficiency.
-
-proc SpaceHashResize*(hash: ptr TSpaceHash; celldim: Float; numcells: cint){.
-    cdecl, importc: "cpSpaceHashResize", dynlib: Lib.}
+proc SpaceHashResize*(hash: PSpaceHash; celldim: Float; numcells: cint){.
+  cdecl, importc: "cpSpaceHashResize", dynlib: Lib.}
 #MARK: AABB Tree
 
 
 #/ Allocate a bounding box tree.
-
 proc BBTreeAlloc*(): ptr TBBTree{.cdecl, importc: "cpBBTreeAlloc", dynlib: Lib.}
 #/ Initialize a bounding box tree.
-
 proc BBTreeInit*(tree: ptr TBBTree; bbfunc: TSpatialIndexBBFunc; 
                  staticIndex: ptr TSpatialIndex): ptr TSpatialIndex{.cdecl, 
     importc: "cpBBTreeInit", dynlib: Lib.}
 #/ Allocate and initialize a bounding box tree.
-
-proc BBTreeNew*(bbfunc: TSpatialIndexBBFunc; staticIndex: ptr TSpatialIndex): ptr TSpatialIndex{.
+proc BBTreeNew*(bbfunc: TSpatialIndexBBFunc; staticIndex: PSpatialIndex): PSpatialIndex{.
     cdecl, importc: "cpBBTreeNew", dynlib: Lib.}
 #/ Perform a static top down optimization of the tree.
-
-proc BBTreeOptimize*(index: ptr TSpatialIndex){.cdecl, 
-    importc: "cpBBTreeOptimize", dynlib: Lib.}
-#/ Bounding box tree velocity callback function.
-#/ This function should return an estimate for the object's velocity.
-
-type 
-  TBBTreeVelocityFunc* = proc (obj: pointer): TVector {.cdecl.}
-
+proc BBTreeOptimize*(index: PSpatialIndex){.
+  cdecl, importc: "cpBBTreeOptimize", dynlib: Lib.}
 #/ Set the velocity function for the bounding box tree to enable temporal coherence.
 
 proc BBTreeSetVelocityFunc*(index: PSpatialIndex; func: TBBTreeVelocityFunc){.
@@ -835,8 +829,8 @@ proc Sweep1DNew*(bbfunc: TSpatialIndexBBFunc; staticIndex: ptr TSpatialIndex): p
 
 
 
-defProp(PArbiter, cdouble, e, Elasticity)
-defProp(PArbiter, cdouble, u, Friction)
+defProp(PArbiter, CpFloat, e, Elasticity)
+defProp(PArbiter, CpFloat, u, Friction)
 defProp(PArbiter, TVector, surface_vr, SurfaceVelocity)
 
 #/ Calculate the total impulse that was applied by this 
@@ -849,7 +843,7 @@ proc totalImpulseWithFriction*(obj: PArbiter): TVector {.cdecl, importc: "cpArbi
 
 #/ Calculate the amount of energy lost in a collision including static, but not dynamic friction.
 #/ This function should only be called from a post-solve, post-step or cpBodyEachArbiter callback.
-proc totalKE*(obj: PArbiter): cdouble {.cdecl, importc: "cpArbiterTotalKE", dynlib: Lib.}
+proc totalKE*(obj: PArbiter): CpFloat {.cdecl, importc: "cpArbiterTotalKE", dynlib: Lib.}
 
 
 #/ Causes a collision pair to be ignored as if you returned false from a begin callback.
@@ -905,7 +899,7 @@ proc getNormal*(arb: PArbiter; i: cint): TVector {.
 proc getPoint*(arb: PArbiter; i: cint): TVector {.
   cdecl, importc: "cpArbiterGetPoint", dynlib: Lib.}
 #/ Get the depth of the @c ith contact point.
-proc getDepth*(arb: PArbiter; i: cint): cdouble {.
+proc getDepth*(arb: PArbiter; i: cint): CpFloat {.
   cdecl, importc: "cpArbiterGetDepth", dynlib: Lib.}
 
 ##Shapes
@@ -935,7 +929,7 @@ proc pointQuery*(shape: PShape; p: TVector): Bool32 {.
 
 #/ Perform a nearest point query. It finds the closest point on the surface of shape to a specific point.
 #/ The value returned is the distance between the points. A negative distance means the point is inside the shape.
-proc nearestPointQuery*(shape: PShape; p: TVector; res: PNearestPointQueryInfo): cdouble {.
+proc nearestPointQuery*(shape: PShape; p: TVector; res: PNearestPointQueryInfo): CpFloat {.
   cdecl, importc: "cpShapeNearestPointQuery", dynlib: Lib.}
 #/ Perform a segment query against a shape. @c info must be a pointer to a valid cpSegmentQueryInfo structure.
 proc segmentQuery*(shape: PShape, a, b: TVector, info: PSegmentQueryInfo): bool {.
@@ -947,7 +941,7 @@ proc queryHitPoint*(start, to: TVector, info: TSegmentQueryInfo): TVector {.inli
   result = start.lerp(to, info.t)
 
 #/ Get the hit distance for a segment query.
-proc queryHitDist*(start, to: TVector, info: TSegmentQueryInfo): cdouble {.inline.} =
+proc queryHitDist*(start, to: TVector, info: TSegmentQueryInfo): CpFloat {.inline.} =
   result = start.dist(to) * info.t
 
 defGetter(PShape, PSpace, space, Space)
@@ -959,8 +953,8 @@ proc setBody*(shape: PShape, value: PBody) {.
 
 defGetter(PShape, TBB, bb, BB)
 defShapeProp(Bool32, sensor, Sensor, true)
-defShapeProp(cdouble, e, Elasiticity, false)
-defShapeProp(cdouble, u, Friction, true)
+defShapeProp(CpFloat, e, Elasiticity, false)
+defShapeProp(CpFloat, u, Friction, true)
 defShapeProp(TVector, surface_v, SurfaceVelocity, true)
 defShapeProp(pointer, data, UserData, false)
 defShapeProp(TCollisionType, collision_type, CollisionType, true)
@@ -974,26 +968,26 @@ proc resetShapeIdCounter*(): void {.cdecl, importc: "cpResetShapeIdCounter", dyn
 #/ Allocate a circle shape.
 proc CircleShapeAlloc*(): PCircleShape {.cdecl, importc: "cpCircleShapeAlloc", dynlib: Lib.}
 #/ Initialize a circle shape.
-proc init*(circle: PCircleShape, body: PBody, radius: cdouble, offset: TVector): PCircleShape {.
+proc init*(circle: PCircleShape, body: PBody, radius: CpFloat, offset: TVector): PCircleShape {.
   cdecl, importc: "cpCircleShapeInit", dynlib: Lib.}
 #/ Allocate and initialize a circle shape.
-proc newCircleShape*(body: PBody, radius: cdouble, offset: TVector): PShape {.
+proc newCircleShape*(body: PBody, radius: CpFloat, offset: TVector): PShape {.
   cdecl, importc: "cpCircleShapeNew", dynlib: Lib.}
 
 
 proc getCircleOffset*(shape: PShape): TVector {.
   cdecl, importc: "cpCircleShapeGetOffset", dynlib: Lib.}
-proc getCircleRadius*(shape: PShape): cdouble {.
+proc getCircleRadius*(shape: PShape): CpFloat {.
   cdecl, importc: "cpCircleShapeGetRadius", dynlib: Lib.}
 
 #/ Allocate a segment shape.
 proc allocSegmentShape*(): PSegmentShape {.
   cdecl, importc: "cpSegmentShapeAlloc", dynlib: Lib.}
 #/ Initialize a segment shape.
-proc init*(seg: PSegmentShape, body: PBody, a, b: TVector, radius: cdouble): PSegmentShape {.
+proc init*(seg: PSegmentShape, body: PBody, a, b: TVector, radius: CpFloat): PSegmentShape {.
   cdecl, importc: "cpSegmentShapeInit", dynlib: Lib.}
 #/ Allocate and initialize a segment shape.
-proc newSegmentShape*(body: PBody, a, b: TVector, radius: cdouble): PShape {.
+proc newSegmentShape*(body: PBody, a, b: TVector, radius: CpFloat): PShape {.
   cdecl, importc: "cpSegmentShapeNew", dynlib: Lib.}
 
 proc setSegmentNeighbors*(shape: PShape, prev, next: TVector) {.
@@ -1004,9 +998,5 @@ proc getSegmentB*(shape: PShape): TVector {.
   cdecl, importc: "cpSegmentShapeGetB", dynlib: Lib.}
 proc getSegmentNormal*(shape: PShape): TVector {.
   cdecl, importc: "cpSegmentShapeGetNormal", dynlib: Lib.}
-proc getSegmentRadius*(shape: PShape): cdouble {.
+proc getSegmentRadius*(shape: PShape): CpFloat {.
   cdecl, importc: "cpSegmentShapeGetRadius", dynlib: Lib.}
-
-
-
-
