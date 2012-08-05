@@ -3,14 +3,14 @@ when defined(Linux):
 else:
   {.error: "Platform unsupported".}
 from math import sqrt, sin, cos, arctan2
+when defined(CpUseFloat):
+  type CpFloat = cfloat
+else:
+  type CpFloat = cdouble
 const 
   CP_BUFFER_BYTES* = (32 * 1024)  
   CP_MAX_CONTACTS_PER_ARBITER* = 4
-  CpInfinity: cfloat = 1.0/0
-when defined(CpUseFloat):
-  type CpFloat = float32
-else:
-  type CpFloat = float64
+  CpInfinity: CpFloat = 1.0/0
 type 
   Bool32* = cint  #replace one day with cint-compatible bool
   TVector* {.final, pure.} = object
