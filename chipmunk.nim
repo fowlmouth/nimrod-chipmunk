@@ -705,7 +705,7 @@ proc SetMoment*(body: PBody; i: CpFloat) {.
 #/ Get the position of a body.
 defGetter(PBody, TVector, p, Pos)
 #/ Set the position of a body.
-proc setPos*(body: PBody; pos: TVector){.
+proc setPos*(body: PBody; pos: TVector) {.
   cdecl, importc: "cpBodySetPos", dynlib: Lib.}
 
 defProp(PBody, TVector, v, Vel)
