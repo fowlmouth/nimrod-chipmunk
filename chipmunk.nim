@@ -1,7 +1,9 @@
+
 when defined(Linux):
   const Lib = "libchipmunk.so.6.1.1"
 else:
   {.error: "Platform unsupported".}
+from math import sqrt, sin, cos, arctan2
 const 
   CP_BUFFER_BYTES* = (32 * 1024)  
   CP_MAX_CONTACTS_PER_ARBITER* = 4
@@ -19,10 +21,10 @@ type
     next*: PBody
     idleTime*: cdouble
   
-  THashValue = uint  # uintptr_t 
-  TCollisionType = uint #uintptr_t
-  TGroup = uint #uintptr_t
-  TLayers = uint 
+  THashValue = cuint  # uintptr_t 
+  TCollisionType = cuint #uintptr_t
+  TGroup * = cuint #uintptr_t
+  TLayers* = cuint
   PArray = ptr TArray
   TArray{.pure,final.} = object
   PHashSet = ptr THashSet
@@ -236,9 +238,16 @@ type
   #/ Body/arbiter iterator callback function type. 
   TBodyArbiterIteratorFunc* = proc (body: PBody; arbiter: PArbiter; 
                                      data: pointer)
-
-  #/ Segment query info struct.
+  
+  PNearestPointQueryInfo* = ptr TNearestPointQueryInfo
+  #/ Nearest point query info struct.
+  TNearestPointQueryInfo*{.pure, final.} = object
+    shape: PShape  #/ The nearest shape, NULL if no shape was within range.
+    p: TVector     #/ The closest point on the shape's surface. (in world space coordinates)
+    d: cdouble      #/ The distance to the point. The distance is negative if the point is inside the shape.
+  
   PSegmentQueryInfo* = ptr TSegmentQueryInfo
+  #/ Segment query info struct.
   TSegmentQueryInfo*{.pure, final.} = object 
     shape*: PShape         #/ The shape that was hit, NULL if no collision occured.
     t*: cdouble            #/ The normalized distance along the query segment in the range [0, 1].
@@ -277,6 +286,16 @@ type
     hashid: THashValue  #PRIVATE
   PCircleShape* = ptr TCircleShape
   TCircleShape*{.pure, final.} = object
+    shape: PShape
+    c, tc: TVector
+    r: cdouble
+  PSegmentShape* = ptr TSegmentShape
+  TSegmentShape*{.pure, final.} = object
+    shape: PShape
+    a, b, n: TVector
+    ta, tb, tn: TVector
+    r: cdouble
+    aTangent, bTangent: TVector
   
   #/ Post Step callback function type.
   TPostStepFunc* = proc (space: PSpace; obj: pointer; data: pointer){.cdecl.}
@@ -508,12 +527,18 @@ proc step*(space: PSpace; dt: cdouble) {.
 proc newVector*(x, y: cdouble): TVector {.inline.} =
   result.x = x
   result.y = y
-
 let VectorZero* = newVector(0.0, 0.0)
 
+
+#/ Vector dot product.
+proc dot*(v1, v2: TVector): cdouble {.inline.} = 
+  result = v1.x * v2.x + v1.y * v2.y
+
 #/ Returns the length of v.
-proc len*(v: TVector): cdouble {.
-  cdecl, importc: "cpvlength", dynlib: Lib.}
+#proc len*(v: TVector): cdouble {.
+#  cdecl, importc: "cpvlength", dynlib: Lib.}
+proc len*(v: TVector): cdouble {.inline.} =
+  result = v.dot(v).sqrt
 #/ Spherical linearly interpolate between v1 and v2.
 proc slerp*(v1, v2: TVector; t: cdouble): TVector {.
   cdecl, importc: "cpvslerp", dynlib: Lib.}
@@ -521,11 +546,13 @@ proc slerp*(v1, v2: TVector; t: cdouble): TVector {.
 proc slerpconst*(v1, v2: TVector; a: cdouble): TVector {.
   cdecl, importc: "cpvslerpconst", dynlib: Lib.}
 #/ Returns the unit length vector for the given angle (in radians).
-proc vectorForAngle*(a: cdouble): TVector {.
-  cdecl, importc: "cpvforangle", dynlib: Lib.}
+#proc vectorForAngle*(a: cdouble): TVector {.
+#  cdecl, importc: "cpvforangle", dynlib: Lib.}
+proc vectorForAngle*(a: cdouble): TVector {.inline.} =
+  result = newVector(math.cos(a), math.sin(a))
 #/ Returns the angular direction v is pointing in (in radians).
-proc toAngle*(v: TVector): cdouble {.
-  cdecl, importc: "cpvtoangle", dynlib: Lib.}
+proc toAngle*(v: TVector): cdouble {.inline.} =
+  result = math.arctan2(v.y, v.x)
 #/	Returns a string representation of v. Intended mostly for debugging purposes and not production use.
 #/	@attention The string points to a static local and is reset every time the function is called.
 #/	If you want to print more than one vector you will have to split up your printing onto separate lines.
@@ -551,10 +578,6 @@ proc `-`*(v: TVector): TVector {.inline.} =
 #/ Scalar multiplication.
 proc `*`*(v: TVector, s: cdouble): TVector {.inline.} =
   result = newVector(v.x * s, v.y * s)
-
-#/ Vector dot product.
-proc dot*(v1, v2: TVector): cdouble {.inline.} = 
-  result = v1.x * v2.x + v1.y * v2.y
 
 #/ 2D vector cross product analog.
 #/ The cross product of 2D vectors results in a 3D vector with only a z component.
@@ -664,19 +687,19 @@ proc isRogue*(body: PBody): Bool {.inline.} =
 defGetter(PBody, cdouble, m, Mass)
 #/ Set the mass of a body.
 proc setMass*(body: PBody; m: cdouble){.
-  importc: "cpBodySetMass", dynlib: Lib.}
+  cdecl, importc: "cpBodySetMass", dynlib: Lib.}
 
 #/ Get the moment of a body.
 defGetter(PBody, cdouble, i, Moment)
 #/ Set the moment of a body.
 proc SetMoment*(body: PBody; i: cdouble) {.
-  importc: "cpBodySetMoment", dynlib: Lib.}
+  cdecl, importc: "cpBodySetMoment", dynlib: Lib.}
 
 #/ Get the position of a body.
 defGetter(PBody, TVector, p, Pos)
 #/ Set the position of a body.
 proc setPos*(body: PBody; pos: TVector){.
-  importc: "cpBodySetPos", dynlib: Lib.}
+  cdecl, importc: "cpBodySetPos", dynlib: Lib.}
 
 defProp(PBody, TVector, v, Vel)
 defProp(PBody, TVector, f, Force)
@@ -685,7 +708,7 @@ defProp(PBody, TVector, f, Force)
 defGetter(PBody, cdouble, a, Angle)
 #/ Set the angle of a body.
 proc setAngle*(body: PBody; a: cdouble){.
-  importc: "cpBodySetAngle", dynlib: Lib.}
+  cdecl, importc: "cpBodySetAngle", dynlib: Lib.}
 
 defProp(PBody, cdouble, w, AngVel)
 defProp(PBody, cdouble, t, Torque)
@@ -696,37 +719,32 @@ defProp(PBody, pointer, data, UserData)
 
 #/ Default Integration functions.
 proc UpdateVelocity*(body: PBody; gravity: TVector; damping: cdouble; dt: cdouble){.
-  importc: "cpBodyUpdateVelocity", dynlib: Lib.}
+  cdecl, importc: "cpBodyUpdateVelocity", dynlib: Lib.}
 proc UpdatePosition*(body: PBody; dt: cdouble){.
-  importc: "cpBodyUpdatePosition", dynlib: Lib.}
+  cdecl, importc: "cpBodyUpdatePosition", dynlib: Lib.}
 #/ Convert body relative/local coordinates to absolute/world coordinates.
 proc Local2World*(body: PBody; v: TVector): TVector{.inline.} = 
   result = body.p + v.rotate(body.rot) ##return cpvadd(body.p, cpvrotate(v, body.rot))
-
 #/ Convert body absolute/world coordinates to  relative/local coordinates.
 proc cpBodyWorld2Local*(body: PBody; v: TVector): TVector{.inline.} = 
   result = (v - body.p).unrotate(body.rot)
-
 #/ Set the forces and torque or a body to zero.
-
-proc cpBodyResetForces*(body: PBody){.importc: "cpBodyResetForces", 
-    dynlib: Lib.}
+proc cpBodyResetForces*(body: PBody){.
+  cdecl, importc: "cpBodyResetForces", dynlib: Lib.}
 #/ Apply an force (in world coordinates) to the body at a point relative to the center of gravity (also in world coordinates).
-
-proc cpBodyApplyForce*(body: PBody; f: TVector; r: TVector){.
-    importc: "cpBodyApplyForce", dynlib: Lib.}
+proc cpBodyApplyForce*(body: PBody; f, r: TVector){.
+  cdecl, importc: "cpBodyApplyForce", dynlib: Lib.}
 #/ Apply an impulse (in world coordinates) to the body at a point relative to the center of gravity (also in world coordinates).
-
-proc cpBodyApplyImpulse*(body: PBody; j: TVector; r: TVector){.
-    importc: "cpBodyApplyImpulse", dynlib: Lib.}
+proc cpBodyApplyImpulse*(body: PBody; j, r: TVector){.
+  cdecl, importc: "cpBodyApplyImpulse", dynlib: Lib.}
 #/ Get the velocity on a body (in world units) at a point on the body in world coordinates.
 
 proc cpBodyGetVelAtWorldPoint*(body: PBody; point: TVector): TVector{.
-    importc: "cpBodyGetVelAtWorldPoint", dynlib: Lib.}
+  cdecl, importc: "cpBodyGetVelAtWorldPoint", dynlib: Lib.}
 #/ Get the velocity on a body (in world units) at a point on the body in local coordinates.
 
 proc cpBodyGetVelAtLocalPoint*(body: PBody; point: TVector): TVector{.
-    importc: "cpBodyGetVelAtLocalPoint", dynlib: Lib.}
+  cdecl, importc: "cpBodyGetVelAtLocalPoint", dynlib: Lib.}
 #/ Get the kinetic energy of a body.
 # static inline cdouble cpBodyKineticEnergy(const cpBody *body)
 # {
@@ -735,36 +753,26 @@ proc cpBodyGetVelAtLocalPoint*(body: PBody; point: TVector): TVector{.
 # 	cpFloat wsq = body->w*body->w;
 # 	return (vsq ? vsq*body->m : 0.0f) + (wsq ? wsq*body->i : 0.0f);
 # }
-
-
-
-
+proc kineticEnergy*(body: PBOdy): cdouble =
+  result = (body.v.dot(body.v) * body.m) + (body.w * body.w * body.i)
 
 #/ Call @c func once for each shape attached to @c body and added to the space.
 proc eachShape*(body: PBody; func: TBodyShapeIteratorFunc; 
                       data: pointer){.
   cdecl, importc: "cpBodyEachShape", dynlib: Lib.}
-
 #/ Call @c func once for each constraint attached to @c body and added to the space.
 proc eachConstraint*(body: PBody; func: TBodyConstraintIteratorFunc; 
                            data: pointer) {.
   cdecl, importc: "cpBodyEachConstraint", dynlib: Lib.}
-
 #/ Call @c func once for each arbiter that is currently active on the body.
-
 proc eachArbiter*(body: PBody; func: TBodyArbiterIteratorFunc; 
                         data: pointer){.
   cdecl, importc: "cpBodyEachArbiter", dynlib: Lib.}
-#/@}
-
-
 #/ Allocate a spatial hash.
-
-proc SpaceHashAlloc*(): ptr TSpaceHash{.cdecl, importc: "cpSpaceHashAlloc", 
-                                        dynlib: Lib.}
+proc SpaceHashAlloc*(): PSpaceHash{.
+  cdecl, importc: "cpSpaceHashAlloc", dynlib: Lib.}
 #/ Initialize a spatial hash. 
-
-proc SpaceHashInit*(hash: ptr TSpaceHash; celldim: Float; numcells: cint; 
+proc SpaceHashInit*(hash: PSpaceHash; celldim: Float; numcells: cint; 
                     bbfunc: TSpatialIndexBBFunc; staticIndex: ptr TSpatialIndex): ptr TSpatialIndex{.
     cdecl, importc: "cpSpaceHashInit", dynlib: Lib.}
 #/ Allocate and initialize a spatial hash.
@@ -925,9 +933,29 @@ proc update*(shape: PShape; pos: TVector; rot: TVector): TBB {.
 proc pointQuery*(shape: PShape; p: TVector): Bool32 {.
   cdecl, importc: "cpShapePointQuery", dynlib: Lib.}
 
+#/ Perform a nearest point query. It finds the closest point on the surface of shape to a specific point.
+#/ The value returned is the distance between the points. A negative distance means the point is inside the shape.
+proc nearestPointQuery*(shape: PShape; p: TVector; res: PNearestPointQueryInfo): cdouble {.
+  cdecl, importc: "cpShapeNearestPointQuery", dynlib: Lib.}
+#/ Perform a segment query against a shape. @c info must be a pointer to a valid cpSegmentQueryInfo structure.
+proc segmentQuery*(shape: PShape, a, b: TVector, info: PSegmentQueryInfo): bool {.
+  cdecl, importc: "cpShapeSegmentQuery", dynlib: Lib.}
+
+#/ Get the hit point for a segment query.
+## Possibly change; info to PSegmentQueryInfo 
+proc queryHitPoint*(start, to: TVector, info: TSegmentQueryInfo): TVector {.inline.} =
+  result = start.lerp(to, info.t)
+
+#/ Get the hit distance for a segment query.
+proc queryHitDist*(start, to: TVector, info: TSegmentQueryInfo): cdouble {.inline.} =
+  result = start.dist(to) * info.t
+
+defGetter(PShape, PSpace, space, Space)
+
 defGetter(PShape, PBody, body, Body)
 proc setBody*(shape: PShape, value: PBody) {.
   cdecl, importc: "cpShapeSetBody", dynlib: Lib.}
+
 
 defGetter(PShape, TBB, bb, BB)
 defShapeProp(Bool32, sensor, Sensor, true)
@@ -938,3 +966,47 @@ defShapeProp(pointer, data, UserData, false)
 defShapeProp(TCollisionType, collision_type, CollisionType, true)
 defShapeProp(TGroup, group, Group, true)
 defShapeProp(TLayers, layers, Layers, true)
+
+#/ When initializing a shape, it's hash value comes from a counter.
+#/ Because the hash value may affect iteration order, you can reset the shape ID counter
+#/ when recreating a space. This will make the simulation be deterministic.
+proc resetShapeIdCounter*(): void {.cdecl, importc: "cpResetShapeIdCounter", dynlib: Lib.}
+#/ Allocate a circle shape.
+proc CircleShapeAlloc*(): PCircleShape {.cdecl, importc: "cpCircleShapeAlloc", dynlib: Lib.}
+#/ Initialize a circle shape.
+proc init*(circle: PCircleShape, body: PBody, radius: cdouble, offset: TVector): PCircleShape {.
+  cdecl, importc: "cpCircleShapeInit", dynlib: Lib.}
+#/ Allocate and initialize a circle shape.
+proc newCircleShape*(body: PBody, radius: cdouble, offset: TVector): PShape {.
+  cdecl, importc: "cpCircleShapeNew", dynlib: Lib.}
+
+
+proc getCircleOffset*(shape: PShape): TVector {.
+  cdecl, importc: "cpCircleShapeGetOffset", dynlib: Lib.}
+proc getCircleRadius*(shape: PShape): cdouble {.
+  cdecl, importc: "cpCircleShapeGetRadius", dynlib: Lib.}
+
+#/ Allocate a segment shape.
+proc allocSegmentShape*(): PSegmentShape {.
+  cdecl, importc: "cpSegmentShapeAlloc", dynlib: Lib.}
+#/ Initialize a segment shape.
+proc init*(seg: PSegmentShape, body: PBody, a, b: TVector, radius: cdouble): PSegmentShape {.
+  cdecl, importc: "cpSegmentShapeInit", dynlib: Lib.}
+#/ Allocate and initialize a segment shape.
+proc newSegmentShape*(body: PBody, a, b: TVector, radius: cdouble): PShape {.
+  cdecl, importc: "cpSegmentShapeNew", dynlib: Lib.}
+
+proc setSegmentNeighbors*(shape: PShape, prev, next: TVector) {.
+  cdecl, importc: "cpSegmentShapeSetNeighbors", dynlib: Lib.}
+proc getSegmentA*(shape: PShape): TVector {.
+  cdecl, importc: "cpSegmentShapeGetA", dynlib: Lib.}
+proc getSegmentB*(shape: PShape): TVector {.
+  cdecl, importc: "cpSegmentShapeGetB", dynlib: Lib.}
+proc getSegmentNormal*(shape: PShape): TVector {.
+  cdecl, importc: "cpSegmentShapeGetNormal", dynlib: Lib.}
+proc getSegmentRadius*(shape: PShape): cdouble {.
+  cdecl, importc: "cpSegmentShapeGetRadius", dynlib: Lib.}
+
+
+
+
