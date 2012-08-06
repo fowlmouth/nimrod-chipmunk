@@ -13,6 +13,7 @@ const
   CpInfinity: CpFloat = 1.0/0
 type 
   Bool32* = cint  #replace one day with cint-compatible bool
+  CpDataPointer* = pointer
   TVector* {.final, pure.} = object
     x*, y*: CpFloat
   TTimestamp* = cuint
@@ -1000,3 +1001,180 @@ proc getSegmentNormal*(shape: PShape): TVector {.
   cdecl, importc: "cpSegmentShapeGetNormal", dynlib: Lib.}
 proc getSegmentRadius*(shape: PShape): CpFloat {.
   cdecl, importc: "cpSegmentShapeGetRadius", dynlib: Lib.}
+
+##constraints
+type 
+  TConstraintPreStepImpl = proc (constraint: PConstraint; dt: CpFloat){.cdecl.}
+  TConstraintApplyCachedImpulseImpl = proc (constraint: PConstraint; 
+      dt_coef: CpFloat){.cdecl.}
+  TConstraintApplyImpulseImpl = proc (constraint: PConstraint){.cdecl.}
+  TConstraintGetImpulseImpl = proc (constraint: PConstraint): CpFloat{.cdecl.}
+  PConstraintClass = ptr TConstraintClass
+  TConstraintClass{.pure, final.} = object 
+    preStep*: TConstraintPreStepImpl
+    applyCachedImpulse*: TConstraintApplyCachedImpulseImpl
+    applyImpulse*: TConstraintApplyImpulseImpl
+    getImpulse*: TConstraintGetImpulseImpl
+  #/ Callback function type that gets called before solving a joint.
+  TConstraintPreSolveFunc* = proc (constraint: PConstraint; space: PSpace){.
+      cdecl.}
+  #/ Callback function type that gets called after solving a joint.
+  TConstraintPostSolveFunc* = proc (constraint: PConstraint; space: PSpace){.
+      cdecl.}
+  #/ Opaque cpConstraint struct.
+  TConstraint*{.pure, final.} = object 
+    klass: PConstraintClass #/PRIVATE
+                                 #/ The first body connected to this constraint.
+    a*: PBody              #/ The second body connected to this constraint.
+    b*: PBody
+    space: PSpace         #/PRIVATE
+    next_a: PConstraint  #/PRIVATE
+    next_b: PConstraint #/PRIVATE
+                             #/ The maximum force that this constraint is allowed to use.
+                             #/ Defaults to infinity.
+    maxForce*: CpFloat #/ The rate at which joint error is corrected.
+                     #/ Defaults to pow(1.0 - 0.1, 60.0) meaning that it will
+                     #/ correct 10% of the error every 1/60th of a second.
+    errorBias*: CpFloat #/ The maximum rate at which joint error is corrected.
+                      #/ Defaults to infinity.
+    maxBias*: CpFloat           #/ Function called before the solver runs.
+                              #/ Animate your joint anchors, update your motor torque, etc.
+    preSolve*: TConstraintPreSolveFunc #/ Function called after the solver runs.
+                                       #/ Use the applied impulse to perform effects like breakable joints.
+    postSolve*: TConstraintPostSolveFunc #/ User definable data pointer.
+                                         #/ Generally this points to your the game object class so you can access it
+                                         #/ when given a cpConstraint reference in a callback.
+    data*: CpDataPointer
+  PPinJoint* = ptr TPinJoint
+  TPinJoint*{.pure, final.} = object 
+    constraint*: Constraint
+    anchr1*: TVector
+    anchr2*: TVector
+    dist*: CpFloat
+    r1*: TVector
+    r2*: TVector
+    n*: TVector
+    nMass*: CpFloat
+    jnAcc*: CpFloat
+    jnMax*: CpFloat
+    bias*: CpFloat
+  PSlideJoint* = ptr TSlideJoint
+  TSlideJoint*{.pure, final.} = object 
+    constraint*: PConstraint
+    anchr1*: TVector
+    anchr2*: TVector
+    min*: CpFloat
+    max*: CpFloat
+    r1*: TVector
+    r2*: TVector
+    n*: TVector
+    nMass*: CpFloat
+    jnAcc*: CpFloat
+    jnMax*: CpFloat
+    bias*: CpFloat
+#/ Destroy a constraint.
+proc destroy*(constraint: PConstraint){.
+  cdecl, importc: "cpConstraintDestroy", dynlib: Lib.}
+#/ Destroy and free a constraint.111
+proc free*(constraint: PConstraint){.
+  cdecl, importc: "cpConstraintFree", dynlib: Lib.}
+
+#/ @private
+proc activateBodies(constraint: PConstraint) {.inline.} = 
+  if constraint.a: constraint.a.activate()
+  if constraint.b: constraint.b.activate()
+
+# /// @private
+# #define CP_DefineConstraintStructGetter(type, member, name) \
+# static inline type cpConstraint##Get##name(const cpConstraint *constraint){return constraint->member;}
+# /// @private
+# #define CP_DefineConstraintStructSetter(type, member, name) \
+# static inline void cpConstraint##Set##name(cpConstraint *constraint, type value){ \
+# 	cpConstraintActivateBodies(constraint); \
+# 	constraint->member = value; \
+# }
+template defConstraintSetter(memberType: typedesc, member: expr, name: expr): stmt {.immediate.} =
+  proc `set name`*(constraint: PConstraint, value: memberType) {.cdecl.} =
+    activateBodies(constraint)
+    constraint.member = value
+template defConstraintProp(memberType: typedesc, member: expr, name: expr): stmt {.immediate.} =
+  defGetter(PConstraint, memberType, member, name)
+  defConstraintSetter(memberType, member, name)
+# CP_DefineConstraintStructGetter(cpSpace*, CP_PRIVATE(space), Space)
+defGetter(PConstraint, PSpace, space, Space)
+defGetter(PConstraint, PBody, a, A)
+defGetter(PConstraint, PBody, a, B)
+defGetter(PConstraint, CpFloat, maxForce, MaxForce)
+defGetter(PConstraint, CpFloat, errorBias, ErrorBias)
+defGetter(PConstraint, CpFloat, maxBias, MaxBias)
+defGetter(PConstraint, TConstraintPreSolveFunc, preSolve, PreSolveFunc)
+defGetter(PConstraint, TConstraintPostSolveFunc, postSolve, PostSolveFunc)
+defGetter(PConstraint, CpDataPointer, data, UserData)
+# Get the last impulse applied by this constraint.
+proc getImpulse*(constraint: PConstraint): CpFloat {.inline.} = 
+  return constraint.klass.getImpulse(constraint)
+
+# #define cpConstraintCheckCast(constraint, struct) \
+# 	cpAssertHard(constraint->CP_PRIVATE(klass) == struct##GetClass(), "Constraint is not a "#struct)
+# #define CP_DefineConstraintGetter(struct, type, member, name) \
+# static inline type struct##Get##name(const cpConstraint *constraint){ \
+# 	cpConstraintCheckCast(constraint, struct); \
+# 	return ((struct *)constraint)->member; \
+# }
+# #define CP_DefineConstraintSetter(struct, type, member, name) \
+# static inline void struct##Set##name(cpConstraint *constraint, type value){ \
+# 	cpConstraintCheckCast(constraint, struct); \
+# 	cpConstraintActivateBodies(constraint); \
+# 	((struct *)constraint)->member = value; \
+# }
+template defConstraintSetter*(ctype: typedesc, memberType: typedesc, member: expr, name: expr): stmt {.immediate.} =
+  proc `set name`*(constraint: ctype, value: memberType) {.cdecl.} =
+    activateBodies(constraint)
+    cast[PConstraint](constraint).member = value
+template defConstraintProp*(ctype: typedesc, memberType: typedesc, member: expr, name: expr): stmt {.immediate.} =
+  defGetter(ctype, memberType, member, name)
+  defConstraintSetter(ctype, memberType, member, name)
+
+proc PinJointGetClass*(): PConstraintClass{.
+  cdecl, importc: "cpPinJointGetClass", dynlib: Lib.}
+#/ @private
+
+#/ Allocate a pin joint.
+proc AllocPinJoint*(): PPinJoint{.
+  cdecl, importc: "cpPinJointAlloc", dynlib: Lib.}
+#/ Initialize a pin joint.
+proc PinJointInit*(joint: PPinJoint; a: PBody; b: PBody; anchr1: TVector; 
+                   anchr2: TVector): PPinJoint{.
+  cdecl, importc: "cpPinJointInit", dynlib: Lib.}
+#/ Allocate and initialize a pin joint.
+proc newPinJoint*(a: PBody; b: PBody; anchr1: TVector; anchr2: TVector): PConstraint{.
+  cdecl, importc: "cpPinJointNew", dynlib: Lib.}
+# CP_DefineConstraintProperty(cpPinJoint, cpVect, anchr1, Anchr1)
+defConstraintProp(PPinJoint, TVector, anchr1, Anchr1)
+defConstraintProp(PPinJoint, TVector, anchr2, Anchr2)
+defConstraintProp(PPinJoint, CpFloat, dist, Dist)
+#/@}
+
+
+proc SlideJointGetClass*(): ptr ConstraintClass{.cdecl, 
+    importc: "cpSlideJointGetClass", dynlib: Lib.}
+#/ @private
+
+#/ Allocate a slide joint.
+proc llocSlideJoint*(): PTSlideJoint{.cdecl, importc: "cpSlideJointAlloc", 
+    dynlib: Lib.}
+#/ Initialize a slide joint.
+proc init*(joint: PSlideJoint; a, b: PBody; anchr1, anchr2: TVector;
+            min, max: CpFloat): PSlideJoint{.
+    cdecl, importc: "cpSlideJointInit", dynlib: Lib.}
+#/ Allocate and initialize a slide joint.
+
+proc SlideJointNew*(a: ptr Body; b: ptr Body; anchr1: Vect; anchr2: Vect; 
+                    min: Float; max: Float): ptr Constraint{.cdecl, 
+    importc: "cpSlideJointNew", dynlib: Lib.}
+# CP_DefineConstraintProperty(cpSlideJoint, cpVect, anchr1, Anchr1)
+# CP_DefineConstraintProperty(cpSlideJoint, cpVect, anchr2, Anchr2)
+# CP_DefineConstraintProperty(cpSlideJoint, cpFloat, min, Min)
+# CP_DefineConstraintProperty(cpSlideJoint, cpFloat, max, Max)
+
+
