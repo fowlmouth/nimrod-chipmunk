@@ -15,23 +15,34 @@ var
 
 window.setFramerateLimit(60)
 space.setGravity(newVector(8.9, 82.3))
-
 randomize()
+
+proc cp2sfml(v: TVector): TVector2f {.inline.} =
+  result.x = v.x
+  result.y = v.y
+
+let
+  CBorder = 1.TLayers
+  CBall = (1 or 2).TLayers
 
 var borders = @[
   newVector(0.0, 0.0), 
   newVector(Width.float, 0.0), 
   newVector(Width.float, Height.float),
   newVector(0.0, Height.float)]
-borders = @[
-  newVector(0.0, 0.0),
-  newVector(100.0,0),
-  newVector(100.0,100.0),
-  newVector(0.0, 100.0)]
+#borders = @[
+#  newVector(0.0, 0.0),
+#  newVector(400.0,0),
+#  newVector(400.0,400.0),
+#  newVector(0.0,  400.0)]
+var sfBorders = newVertexArray(LinesStrip, 4)
 for i in 0..3:
-  var shape = space.addShape(newSegmentShape(space.getStaticBody(), borders[i], borders[(i+1) mod 4], 1.0))
-  shape.setLayers(1.TLayers)
+  var shape = space.addStaticShape(
+    newSegmentShape(space.getStaticBody(), borders[i], borders[(i+1) mod 4], 5.0))
+  sfBorders[i].position = borders[i].cp2sfml
+  shape.setLayers(CBorder)
   echo($ shape.getLayers())
+
 
 proc vectorToVec2f(a: TVector): TVector2f =
   result.x = a.x
@@ -48,7 +59,7 @@ proc newBall(mass = 10.0, radius = 10.0): PGameObj =
   result.body = space.addBody(newBody(mass, momentForCircle(mass, 0.0, radius, vectorZero)))
   result.body.setPos pos
   result.shape = space.addShape(newCircleShape(result.body, radius, VectorZero))
-  result.shape.setLayers(1.TLayers)
+  result.shape.setLayers(CBall)
   echo($pos, $result.body.getPos(), $result.body.getMass()) #not being set for some reason .. >:\
 
 for i in 0..0: #50:
@@ -90,6 +101,8 @@ while window.isOpen():
     o.sprite.setPosition o.body.getPos.vectorToVec2f
     window.draw o.sprite
   window.draw text
+  window.draw text2
+  window.draw sfBorders
   window.display()
 
 for o in gameobjects:

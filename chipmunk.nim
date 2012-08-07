@@ -1,3 +1,23 @@
+# Copyright (c) 2007 Scott Lembcke
+#  
+#  Permission is hereby granted, free of charge, to any person obtaining a copy
+#  of this software and associated documentation files (the "Software"), to deal
+#  in the Software without restriction, including without limitation the rights
+#  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#  copies of the Software, and to permit persons to whom the Software is
+#  furnished to do so, subject to the following conditions:
+#  
+#  The above copyright notice and this permission notice shall be included in
+#  all copies or substantial portions of the Software.
+#  
+#  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#  SOFTWARE.
+# 
 when defined(Linux):
   const Lib = "libchipmunk.so.6.1.1"
 else:
@@ -11,6 +31,7 @@ const
   CP_BUFFER_BYTES* = (32 * 1024)  
   CP_MAX_CONTACTS_PER_ARBITER* = 4
   CpInfinity: CpFloat = 1.0/0
+{.pragma: pf, pure, final.}
 type 
   Bool32* = cint  #replace one day with cint-compatible bool
   CpDataPointer* = pointer
@@ -20,23 +41,23 @@ type
   TBodyVelocityFunc* = proc(body: PBody, gravity: TVector,
                             damping: CpFloat; dt: CpFloat)
   TBodyPositionFunc* = proc(body: PBody; dt: CpFloat)
-  TComponentNode*{.pure, final.} = object 
+  TComponentNode*{.pf.} = object 
     root*: PBody
     next*: PBody
     idleTime*: CpFloat
   
   THashValue = cuint  # uintptr_t 
-  TCollisionType = cuint #uintptr_t
+  TCollisionType* = cuint #uintptr_t
   TGroup * = cuint #uintptr_t
   TLayers* = cuint
   PArray = ptr TArray
   TArray{.pure,final.} = object
   PHashSet = ptr THashSet
-  THashSet{.pure, final.} = object
+  THashSet{.pf.} = object
   PContact* = ptr TContact
   TContact*{.pure,final.} = object
   PArbiter* = ptr TArbiter
-  TArbiter*{.pure, final.} = object 
+  TArbiter*{.pf.} = object 
     e*: CpFloat
     u*: CpFloat 
     surface_vr*: TVector
@@ -53,7 +74,7 @@ type
     swappedColl*: bool32
     state*: TArbiterState
   PCollisionHandler* = ptr TCollisionHandler
-  TCollisionHandler*{.pure, final.} = object 
+  TCollisionHandler*{.pf.} = object 
     a*: TCollisionType
     b*: TCollisionType
     begin*: TCollisionBeginFunc
@@ -67,17 +88,17 @@ type
                               # Either by returning false from a begin collision handler or calling cpArbiterIgnore().
     ArbiterStateIgnore,       # Collison is no longer active. A space will cache an arbiter for up to cpSpace.collisionPersistence more steps.
     ArbiterStateCached
-  TArbiterThread*{.pure, final.} = object 
+  TArbiterThread*{.pf.} = object 
     next*: PArbiter        # Links to next and previous arbiters in the contact graph.
     prev*: PArbiter
   
-  TContactPoint*{.pure, final.} = object 
+  TContactPoint*{.pf.} = object 
     point*: TVector    #/ The position of the contact point.
     normal*: TVector   #/ The normal of the contact point.
     dist*: CpFloat     #/ The depth of the contact point.
   #/ A struct that wraps up the important collision data for an arbiter.
   PContactPointSet* = ptr TContactPointSet
-  TContactPointSet*{.pure, final.} = object 
+  TContactPointSet*{.pf.} = object 
     count*: cint              #/ The number of contact points in the set.
     points*: array[0..CP_MAX_CONTACTS_PER_ARBITER - 1, TContactPoint] #/ The array of contact points.
   
@@ -99,7 +120,7 @@ type
   
   #/ Chipmunk's axis-aligned 2D bounding box type. (left, bottom, right, top)
   PBB* = ptr TBB
-  TBB* {.pure, final.} = object 
+  TBB* {.pf.} = object 
     l*, b*, r*, t*: CpFloat
   
   #/ Spatial index bounding box callback function type.
@@ -116,7 +137,7 @@ type
       data: pointer): CpFloat {.cdecl.}
   #/ private
   PSpatialIndex = ptr TSpatialIndex
-  TSpatialIndex{.pure, final.} = object 
+  TSpatialIndex{.pf.} = object 
     klass: PSpatialIndexClass
     bbfunc: TSpatialIndexBBFunc
     staticIndex: PSpatialIndex
@@ -148,7 +169,7 @@ type
                                   bb: TBB; func: TSpatialIndexQueryFunc; 
                                   data: pointer){.cdecl.}
   PSpatialIndexClass* = ptr TSpatialIndexClass
-  TSpatialIndexClass*{.pure, final.} = object 
+  TSpatialIndexClass*{.pf.} = object 
     destroy*: TSpatialIndexDestroyImpl
     count*: TSpatialIndexCountImpl
     each*: TSpatialIndexEachImpl
@@ -163,22 +184,22 @@ type
     query*: TSpatialIndexQueryImpl
   
   PSpaceHash* = ptr TSpaceHash
-  TSpaceHash* {.pure, final.} = object
+  TSpaceHash* {.pf.} = object
   PBBTree* = ptr TBBTree
-  TBBTree* {.pure, final.} = object
+  TBBTree* {.pf.} = object
   PSweep1D* = ptr TSweep1D
-  TSweep1D* {.pure, final.} = object
+  TSweep1D* {.pf.} = object
   
   #/ Bounding box tree velocity callback function.
   #/ This function should return an estimate for the object's velocity.
   TBBTreeVelocityFunc* = proc (obj: pointer): TVector {.cdecl.}
   
   PContactBufferHeader* = ptr TContentBufferHeader
-  TContentBufferHeader* {.pure, final.} = object
+  TContentBufferHeader* {.pf.} = object
   TSpaceArbiterApplyImpulseFunc* = proc (arb: PArbiter){.cdecl.}
   
   PSpace* = ptr TSpace
-  TSpace* {.pure, final.} = object
+  TSpace* {.pf.} = object
     iterations*: cint 
     gravity*: TVector
     damping*: CpFloat
@@ -210,7 +231,7 @@ type
     arbiterApplyImpulse: TSpaceArbiterApplyImpulseFunc
     staticBody2: TBody  #_staticBody 
   PBody* = ptr TBody
-  TBody*{.pure, final.} = object 
+  TBody*{.pf.} = object 
     velocityFunc*: TBodyVelocityFunc 
     positionFunc*: TBodyPositionFunc                                       
     m*: CpFloat           
@@ -247,14 +268,14 @@ type
   
   PNearestPointQueryInfo* = ptr TNearestPointQueryInfo
   #/ Nearest point query info struct.
-  TNearestPointQueryInfo*{.pure, final.} = object
+  TNearestPointQueryInfo*{.pf.} = object
     shape: PShape  #/ The nearest shape, NULL if no shape was within range.
     p: TVector     #/ The closest point on the shape's surface. (in world space coordinates)
     d: CpFloat      #/ The distance to the point. The distance is negative if the point is inside the shape.
   
   PSegmentQueryInfo* = ptr TSegmentQueryInfo
   #/ Segment query info struct.
-  TSegmentQueryInfo*{.pure, final.} = object 
+  TSegmentQueryInfo*{.pf.} = object 
     shape*: PShape         #/ The shape that was hit, NULL if no collision occured.
     t*: CpFloat            #/ The normalized distance along the query segment in the range [0, 1].
     n*: TVector            #/ The normal of the surface hit.
@@ -266,14 +287,14 @@ type
   TShapeSegmentQueryImpl* = proc (shape: PShape; a: TVector; b: TVector; 
                                   info: PSegmentQueryInfo){.cdecl.}
   PShapeClass* = ptr TShapeClass
-  TShapeClass*{.pure, final.} = object 
+  TShapeClass*{.pf.} = object 
     kind*: TShapeType
     cacheData*: TShapeCacheDataImpl
     destroy*: TShapeDestroyImpl
     pointQuery*: TShapePointQueryImpl
     segmentQuery*: TShapeSegmentQueryImpl
   PShape* = ptr TShape
-  TShape*{.pure, final.} = object 
+  TShape*{.pf.} = object 
     klass: PShapeClass   #/ PRIVATE
     body*: PBody           #/ The rigid body this collision shape is attached to.
     bb*: TBB               #/ The current bounding box of the shape.   
@@ -291,17 +312,27 @@ type
     prev: PShape         #PRIVATE
     hashid: THashValue  #PRIVATE
   PCircleShape* = ptr TCircleShape
-  TCircleShape*{.pure, final.} = object
+  TCircleShape*{.pf.} = object
     shape: PShape
     c, tc: TVector
     r: CpFloat
+  PPolyShape* = ptr TPolyShape
+  TPolyShape*{.pf.} = object
+    shape: PShape
+    numVerts: cint
+    verts, tVerts: TVector
+    planes, tPlanes: PSplittingPlane
   PSegmentShape* = ptr TSegmentShape
-  TSegmentShape*{.pure, final.} = object
+  TSegmentShape*{.pf.} = object
     shape: PShape
     a, b, n: TVector
     ta, tb, tn: TVector
     r: CpFloat
     aTangent, bTangent: TVector
+  PSplittingPlane* = ptr TSplittingPlane
+  TSplittingPlane*{.pf.} = object
+    n: TVector
+    d: CpFloat
   
   #/ Post Step callback function type.
   TPostStepFunc* = proc (space: PSpace; obj: pointer; data: pointer){.cdecl.}
@@ -324,7 +355,7 @@ type
                                         data: pointer){.cdecl.}
   #/ Opaque cpConstraint struct.
   PConstraint* = ptr TConstraint
-  TConstraint*{.pure, final.} = object 
+  TConstraint*{.pf.} = object 
     klass: PConstraintClass #/PRIVATE
     a*: PBody            #/ The first body connected to this constraint.
     b*: PBody              #/ The second body connected to this constraint.
@@ -338,22 +369,21 @@ type
     postSolve*: TConstraintPostSolveFunc #/ Function called after the solver runs. Use the applied impulse to perform effects like breakable joints.
     data*: CpDataPointer  # User definable data pointer. Generally this points to your the game object class so you can access it when given a cpConstraint reference in a callback.
   TConstraintPreStepImpl = proc (constraint: PConstraint; dt: CpFloat){.cdecl.}
-  TConstraintApplyCachedImpulseImpl = proc (constraint: PConstraint; 
-      dt_coef: CpFloat){.cdecl.}
+  TConstraintApplyCachedImpulseImpl = proc (constraint: PConstraint; dt_coef: CpFloat){.cdecl.}
   TConstraintApplyImpulseImpl = proc (constraint: PConstraint){.cdecl.}
   TConstraintGetImpulseImpl = proc (constraint: PConstraint): CpFloat{.cdecl.}
   PConstraintClass = ptr TConstraintClass
-  TConstraintClass{.pure, final.} = object 
+  TConstraintClass{.pf.} = object 
     preStep*: TConstraintPreStepImpl
     applyCachedImpulse*: TConstraintApplyCachedImpulseImpl
     applyImpulse*: TConstraintApplyImpulseImpl
     getImpulse*: TConstraintGetImpulseImpl
   #/ Callback function type that gets called before solving a joint.
   TConstraintPreSolveFunc* = proc (constraint: PConstraint; space: PSpace){.
-      cdecl.}
+    cdecl.}
   #/ Callback function type that gets called after solving a joint.
   TConstraintPostSolveFunc* = proc (constraint: PConstraint; space: PSpace){.
-      cdecl.}
+    cdecl.}
 
 #/ Version string.
 #var VersionString*{.importc: "cpVersionString", dynlib: Lib.}: cstring
@@ -1005,11 +1035,48 @@ proc init*(circle: PCircleShape, body: PBody, radius: CpFloat, offset: TVector):
 proc newCircleShape*(body: PBody, radius: CpFloat, offset: TVector): PShape {.
   cdecl, importc: "cpCircleShapeNew", dynlib: Lib.}
 
-
 proc getCircleOffset*(shape: PShape): TVector {.
   cdecl, importc: "cpCircleShapeGetOffset", dynlib: Lib.}
 proc getCircleRadius*(shape: PShape): CpFloat {.
   cdecl, importc: "cpCircleShapeGetRadius", dynlib: Lib.}
+
+
+#/ Allocate a polygon shape.
+proc allocPolyShape*(): PPolyShape {.
+  cdecl, importc: "cpPolyShapeAlloc", dynlib: Lib.}
+#/ Initialize a polygon shape.
+#/ A convex hull will be created from the vertexes.
+proc init*(poly: PPolyShape; body: PBody, numVerts: cint;
+            verts: ptr TVector; offset: TVector): PPolyShape {.
+  cdecl, importc: "cpPolyShapeInit", dynlib: Lib.}
+#/ Allocate and initialize a polygon shape.
+#/ A convex hull will be created from the vertexes.
+proc newPolyShape*(body: PBody; numVerts: cint; verts: ptr TVector; 
+                    offset: TVector): PShape {.
+  cdecl, importc: "cpPolyShapeNew", dynlib: Lib.}
+#/ Initialize a box shaped polygon shape.
+proc init*(poly: PPolyShape; body: PBody; width, height: CpFloat): PPolyShape {.
+  cdecl, importc: "cpBoxShapeInit", dynlib: Lib.}
+#/ Initialize an offset box shaped polygon shape.
+proc init*(poly: PPolyShape; body: PBody; box: TBB): PPolyShape {.
+  cdecl, importc: "cpBoxShapeInit2", dynlib: Lib.}
+#/ Allocate and initialize a box shaped polygon shape.
+proc newBoxShape*(body: PBody; width, height: CpFloat): PShape {.
+  cdecl, importc: "cpBoxShapeNew", dynlib: Lib.}
+#/ Allocate and initialize an offset box shaped polygon shape.
+proc newBoxShape*(body: PBody; box: TBB): PShape {.
+  cdecl, importc: "cpBoxShapeNew2", dynlib: Lib.}
+
+#/ Check that a set of vertexes is convex and has a clockwise winding.
+#/ NOTE: Due to floating point precision issues, hulls created with cpQuickHull() are not guaranteed to validate!
+proc validatePoly*(verts: ptr TVector; numVerts: cint): bool {.
+  cdecl, importc: "cpPolyValidate", dynlib: Lib.}
+#/ Get the number of verts in a polygon shape.
+proc getNumVerts*(shape: PShape): cint {.
+  cdecl, importc: "cpPolyShapeGetNumVerts", dynlib: Lib.}
+#/ Get the @c ith vertex of a polygon shape.
+proc getVert*(shape: PShape; index: cint): TVector {.
+  cdecl, importc: "cpPolyShapeGetVert", dynlib: Lib.}
 
 #/ Allocate a segment shape.
 proc allocSegmentShape*(): PSegmentShape {.
@@ -1036,88 +1103,89 @@ proc getSegmentRadius*(shape: PShape): CpFloat {.
 type 
   #TODO: all these are private
   #TODO: defConstraintProp()
-  PPinJoint* = ptr TPinJoint
-  TPinJoint*{.pure, final.} = object 
-    constraint*: PConstraint
-    anchr1*: TVector
-    anchr2*: TVector
-    dist*: CpFloat
-    r1*: TVector
-    r2*: TVector
-    n*: TVector
-    nMass*: CpFloat
-    jnAcc*: CpFloat
-    jnMax*: CpFloat
-    bias*: CpFloat
-  PSlideJoint* = ptr TSlideJoint
-  TSlideJoint*{.pure, final.} = object 
-    constraint*: PConstraint
-    anchr1*: TVector
-    anchr2*: TVector
-    min*: CpFloat
-    max*: CpFloat
-    r1*: TVector
-    r2*: TVector
-    n*: TVector
-    nMass*: CpFloat
-    jnAcc*: CpFloat
-    jnMax*: CpFloat
-    bias*: CpFloat
-  PPivotJoint* = ptr TPivotJoint
-  TPivotJoint*{.pure, final.} = object 
-    constraint*: PConstraint
-    anchr1*: TVector
-    anchr2*: TVector
-    r1*: TVector
-    r2*: TVector
-    k1*: TVector
-    k2*: TVector
-    jAcc*: TVector
+  PPinJoint = ptr TPinJoint
+  TPinJoint{.pf.} = object 
+    constraint: PConstraint
+    anchr1: TVector
+    anchr2: TVector
+    dist: CpFloat
+    r1: TVector
+    r2: TVector
+    n: TVector
+    nMass: CpFloat
+    jnAcc: CpFloat
+    jnMax: CpFloat
+    bias: CpFloat
+  PSlideJoint = ptr TSlideJoint
+  TSlideJoint{.pf.} = object 
+    constraint: PConstraint
+    anchr1: TVector
+    anchr2: TVector
+    min: CpFloat
+    max: CpFloat
+    r1: TVector
+    r2: TVector
+    n: TVector
+    nMass: CpFloat
+    jnAcc: CpFloat
+    jnMax: CpFloat
+    bias: CpFloat
+  PPivotJoint = ptr TPivotJoint
+  TPivotJoint{.pf.} = object 
+    constraint: PConstraint
+    anchr1: TVector
+    anchr2: TVector
+    r1: TVector
+    r2: TVector
+    k1: TVector
+    k2: TVector
+    jAcc: TVector
     jMaxLen: CpFloat
-    bias*: TVector
-  PGrooveJoint* = ptr TGrooveJoint
-  TGrooveJoint*{.pure, final.} = object 
-    constraint*: PConstraint
-    grv_n*: TVector
-    grv_a*: TVector
-    grv_b*: TVector
-    anchr2*: TVector
-    grv_tn*: TVector
+    bias: TVector
+  PGrooveJoint = ptr TGrooveJoint
+  TGrooveJoint{.pf.} = object 
+    constraint: PConstraint
+    grv_n: TVector
+    grv_a: TVector
+    grv_b: TVector
+    anchr2: TVector
+    grv_tn: TVector
     clamp: CpFloat
-    r1*: TVector
-    r2*: TVector
-    k1*: TVector
-    k2*: TVector
-    jAcc*: TVector
+    r1: TVector
+    r2: TVector
+    k1: TVector
+    k2: TVector
+    jAcc: TVector
     jMaxLen: CpFloat
-    bias*: TVector
-  PDampedSprint* = ptr TDampedSpring
-  TDampedSpring*{.pure, final.} = object 
-    constraint*: PConstraint
-    anchr1*: TVector
-    anchr2*: TVector
+    bias: TVector
+  PDampedSpring = ptr TDampedSpring
+  TDampedSpring{.pf.} = object 
+    constraint: PConstraint
+    anchr1: TVector
+    anchr2: TVector
     restLength: CpFloat
     stiffness: CpFloat
     damping: CpFloat
-    springForceFunc*: TDampedSpringForceFunc
+    springForceFunc: TDampedSpringForceFunc
     target_vrn: CpFloat
     v_coef: CpFloat
-    r1*: TVector
-    r2*: TVector
+    r1: TVector
+    r2: TVector
     nMass: CpFloat
-    n*: TVector
-  PDampedRotarySpring* = ptr TDampedRotarySpring
-  TDampedRotarySpring*{.pure, final.} = object 
-    constraint*: PConstraint
+    n: TVector
+  PDampedRotarySpring = ptr TDampedRotarySpring
+  TDampedRotarySpring{.pf.} = object 
+    constraint: PConstraint
     restAngle: CpFloat
     stiffness: CpFloat
     damping: CpFloat
-    springTorqueFunc*: TDampedRotarySpringTorqueFunc
+    springTorqueFunc: TDampedRotarySpringTorqueFunc
     target_wrn: CpFloat
     w_coef: CpFloat
     iSum: CpFloat
-  TRotaryLimitJoint*{.pure, final.} = object 
-    constraint*: PConstraint
+  PRotaryLimitJoint = ptr TRotaryLimitJoint
+  TRotaryLimitJoint{.pf.} = object 
+    constraint: PConstraint
     min: CpFloat
     max: CpFloat
     iSum: CpFloat
@@ -1125,8 +1193,8 @@ type
     jAcc: CpFloat
     jMax: CpFloat
   PRatchetJoint = ptr TRatchetJoint
-  TRatchetJoint{.pure, final.} = object 
-    constraint*: PConstraint
+  TRatchetJoint{.pf.} = object 
+    constraint: PConstraint
     angle: CpFloat
     phase: CpFloat
     ratchet: CpFloat
@@ -1135,8 +1203,8 @@ type
     jAcc: CpFloat
     jMax: CpFloat
   PGearJoint = ptr TGearJoint
-  TGearJoint{.pure, final.} = object 
-    constraint*: PConstraint
+  TGearJoint{.pf.} = object 
+    constraint: PConstraint
     phase: CpFloat
     ratio: CpFloat
     ratio_inv: CpFloat
@@ -1145,8 +1213,8 @@ type
     jAcc: CpFloat
     jMax: CpFloat
   PSimpleMotor = ptr TSimpleMotor
-  TSimpleMotor{.pure, final.} = object 
-    constraint*: PConstraint
+  TSimpleMotor{.pf.} = object 
+    constraint: PConstraint
     rate: CpFloat
     iSum: CpFloat
     jAcc: CpFloat
@@ -1210,13 +1278,20 @@ proc getImpulse*(constraint: PConstraint): CpFloat {.inline.} =
 # 	cpConstraintActivateBodies(constraint); \
 # 	((struct *)constraint)->member = value; \
 # }
-template defConstraintSetter*(ctype: typedesc, memberType: typedesc, member: expr, name: expr): stmt {.immediate.} =
-  proc `set name`*(constraint: ctype, value: memberType) {.cdecl.} =
+template constraintCheckCast(constraint: PConstraint, ctype: expr): stmt {.immediate.} =
+  assert(constraint.klass == `ctype getClass`(), "Constraint is the wrong class")
+template defCGetter(ctype: expr, memberType: typedesc, member: expr, name: expr): stmt {.immediate.} = 
+  proc `get ctype name`*(constraint: PConstraint): memberType {.cdecl.} =
+    constraintCheckCast(constraint, ctype)
+    result = cast[`P ctype`](constraint).member
+template defCSetter(ctype: expr, memberType: typedesc, member: expr, name: expr): stmt {.immediate.} =
+  proc `set ctype name`*(constraint: PConstraint, value: memberType) {.cdecl.} =
+    constraintCheckCast(constraint, ctype)
     activateBodies(constraint)
-    cast[PConstraint](constraint).member = value
-template defConstraintProp*(ctype: typedesc, memberType: typedesc, member: expr, name: expr): stmt {.immediate.} =
-  defGetter(ctype, memberType, member, name)
-  defConstraintSetter(ctype, memberType, member, name)
+    cast[`P ctype`](constraint).member = value
+template defCProp(ctype: expr, memberType: typedesc, member: expr, name: expr): stmt {.immediate.} =
+  defCGetter(ctype, memberType, member, name)
+  defCSetter(ctype, memberType, member, name)
 
 proc PinJointGetClass*(): PConstraintClass{.
   cdecl, importc: "cpPinJointGetClass", dynlib: Lib.}
@@ -1233,18 +1308,14 @@ proc PinJointInit*(joint: PPinJoint; a: PBody; b: PBody; anchr1: TVector;
 proc newPinJoint*(a: PBody; b: PBody; anchr1: TVector; anchr2: TVector): PConstraint{.
   cdecl, importc: "cpPinJointNew", dynlib: Lib.}
 # CP_DefineConstraintProperty(cpPinJoint, cpVect, anchr1, Anchr1)
-defConstraintProp(PPinJoint, TVector, anchr1, Anchr1)
-defConstraintProp(PPinJoint, TVector, anchr2, Anchr2)
-defConstraintProp(PPinJoint, CpFloat, dist, Dist)
-#/@}
+defCProp(PinJoint, TVector, anchr1, Anchr1)
+defCProp(PinJoint, TVector, anchr2, Anchr2)
+defCProp(PinJoint, CpFloat, dist, Dist)
 
-
-proc SlideJointGetClass*(): PConstraintClass{.cdecl, 
-    importc: "cpSlideJointGetClass", dynlib: Lib.}
-#/ @private
-
+proc SlideJointGetClass*(): PConstraintClass{.
+  cdecl, importc: "cpSlideJointGetClass", dynlib: Lib.}
 #/ Allocate a slide joint.
-proc llocSlideJoint*(): PTSlideJoint{.
+proc AllocSlideJoint*(): PSlideJoint{.
   cdecl, importc: "cpSlideJointAlloc", dynlib: Lib.}
 #/ Initialize a slide joint.
 proc init*(joint: PSlideJoint; a, b: PBody; anchr1, anchr2: TVector;
@@ -1254,11 +1325,13 @@ proc init*(joint: PSlideJoint; a, b: PBody; anchr1, anchr2: TVector;
 proc newSlideJoint*(a, b: PBody; anchr1, anchr2: TVector; min, max: CpFloat): PConstraint{.
   cdecl, importc: "cpSlideJointNew", dynlib: Lib.}
 
-defConstraintProp(PSlideJoint, TVector, anchr1, Anchr1)
-defConstraintProp(PSlideJoint, TVector, anchr2, Anchr2)
-defConstraintProp(PSlideJoint, CpFloat, min, Min)
-defConstraintProp(PSlideJoint, CpFloat, max, Max)
+defCProp(SlideJoint, TVector, anchr1, Anchr1)
+defCProp(SlideJoint, TVector, anchr2, Anchr2)
+defCProp(SlideJoint, CpFloat, min, Min)
+defCProp(SlideJoint, CpFloat, max, Max)
 
+proc pivotJointGetClass*(): PConstraintClass {.
+  cdecl, importc: "cpPivotJointGetClass", dynlib: Lib.}
 
 #/ Allocate a pivot joint
 proc allocPivotJoint*(): PPivotJoint{.
@@ -1273,44 +1346,34 @@ proc newPivotJoint*(a, b: PBody; pivot: TVector): PConstraint{.
 proc newPivotJoint*(a, b: PBody; anchr1, anchr2: TVector): PConstraint{.
   cdecl, importc: "cpPivotJointNew2", dynlib: Lib.}
 
-defConstraintProp(PPivotJoint, TVector, anchr1, Anchr1)
-defConstraintProp(PPivotJoint, TVector, anchr2, Anchr2)
+defCProp(PivotJoint, TVector, anchr1, Anchr1)
+defCProp(PivotJoint, TVector, anchr2, Anchr2)
 
 
-proc GrooveJointGetClass*(): PConstraintClass{.cdecl, 
-    importc: "cpGrooveJointGetClass", dynlib: Lib.}
-#/ @private
-
-type 
-
-
+proc GrooveJointGetClass*(): PConstraintClass{.
+  cdecl, importc: "cpGrooveJointGetClass", dynlib: Lib.}
 #/ Allocate a groove joint.
-
-proc GrooveJointAlloc*(): ptr TGrooveJoint{.cdecl, 
-    importc: "cpGrooveJointAlloc", dynlib: Lib.}
+proc GrooveJointAlloc*(): ptr TGrooveJoint{.
+  cdecl, importc: "cpGrooveJointAlloc", dynlib: Lib.}
 #/ Initialize a groove joint.
-
-proc GrooveJointInit*(joint: ptr TGrooveJoint; a: PBody; b: PBody; 
-                      groove_a: TVector; groove_b: TVector; anchr2: TVector): ptr TGrooveJoint{.
-    cdecl, importc: "cpGrooveJointInit", dynlib: Lib.}
+proc Init*(joint: PGrooveJoint; a, b: PBody; groove_a, groove_b, anchr2: TVector): PGrooveJoint{.
+  cdecl, importc: "cpGrooveJointInit", dynlib: Lib.}
 #/ Allocate and initialize a groove joint.
+proc newGrooveJoint*(a, b: PBody; groove_a, groove_b, anchr2: TVector): PConstraint{.
+  cdecl, importc: "cpGrooveJointNew", dynlib: Lib.}
 
-proc GrooveJointNew*(a: PBody; b: PBody; groove_a: TVector; groove_b: TVector; 
-                     anchr2: TVector): PConstraint{.cdecl, 
-    importc: "cpGrooveJointNew", dynlib: Lib.}
-# CP_DefineConstraintGetter(cpGrooveJoint, cpVect, grv_a, GrooveA)
+defCGetter(GrooveJoint, TVector, grv_a, GrooveA)
+defCGetter(GrooveJoint, TVector, grv_b, GrooveB)
 # /// Set endpoint a of a groove joint's groove
-# void cpGrooveJointSetGrooveA(cpConstraint *constraint, cpVect value);
-# CP_DefineConstraintGetter(cpGrooveJoint, cpVect, grv_b, GrooveB)
+proc SetGrooveA*(constraint: PConstraint, value: TVector) {.
+  cdecl, importc: "cpGrooveJointSetGrooveA", dynlib: Lib.}
 # /// Set endpoint b of a groove joint's groove
-# void cpGrooveJointSetGrooveB(cpConstraint *constraint, cpVect value);
-# CP_DefineConstraintProperty(cpGrooveJoint, cpVect, anchr2, Anchr2)
-
-type 
+proc SetGrooveB*(constraint: PConstraint, value: TVector) {.
+  cdecl, importc: "cpGrooveJointSetGrooveB", dynlib: Lib.}
+defCProp(GrooveJoint, TVector, anchr2, Anchr2)
 
 proc DampedSpringGetClass*(): PConstraintClass{.
   cdecl, importc: "cpDampedSpringGetClass", dynlib: Lib.}
-#/ @private
 #/ Allocate a damped spring.
 proc AllocDampedSpring*(): PDampedSpring{.
   cdecl, importc: "cpDampedSpringAlloc", dynlib: Lib.}
@@ -1324,12 +1387,12 @@ proc newDampedSpring*(a, b: PBody; anchr1, anchr2: TVector;
   cdecl, importc: "cpDampedSpringNew", dynlib: Lib.}
 
 # CP_DefineConstraintProperty(cpDampedSpring, cpVect, anchr1, Anchr1)
-defConstraintProp(PDampedSpring, TVector, anchr1, Anchr1)
-defConstraintProp(PDampedSpring, TVector, anchr2, Anchr2)
-defConstraintProp(PDampedSpring, CpFloat, restLength, RestLength)
-defConstraintProp(PDampedSpring, CpFloat, stiffness, Stiffness)
-defConstraintProp(PDampedSpring, CpFloat, damping, Damping)
-defConstraintProp(PDampedSpring, TDampedSpringForceFunc, springForceFunc, SpringForceFunc)
+defCProp(DampedSpring, TVector, anchr1, Anchr1)
+defCProp(DampedSpring, TVector, anchr2, Anchr2)
+defCProp(DampedSpring, CpFloat, restLength, RestLength)
+defCProp(DampedSpring, CpFloat, stiffness, Stiffness)
+defCProp(DampedSpring, CpFloat, damping, Damping)
+defCProp(DampedSpring, TDampedSpringForceFunc, springForceFunc, SpringForceFunc)
 
 
 proc DampedRotarySpringGetClass*(): PConstraintClass{.
@@ -1345,102 +1408,66 @@ proc init*(joint: PDampedRotarySpring; a, b: PBody;
 #/ Allocate and initialize a damped rotary spring.
 proc DampedRotarySpringNew*(a, b: PBody; restAngle, stiffness, damping: CpFloat): PConstraint{.
   cdecl, importc: "cpDampedRotarySpringNew", dynlib: Lib.}
-# CP_DefineConstraintProperty(cpDampedRotarySpring, cpFloat, restAngle, RestAngle)
-defConstraintProp(PDampedRotarySpring, CpFloat, restAngle, RestAngle)
-defConstraintProp(PDampedRotarySpring, CpFloat, stiffnes, Stiffness)
-defConstraintProp(PDampedRotarySpring, CpFloat, damping, Damping)
-defConstraintProp(PDampedRotarySpring, TDampedRotarySpringTorqueFunc, springTorqueFunc, SpringTorqueFunc)
+
+defCProp(DampedRotarySpring, CpFloat, restAngle, RestAngle)
+defCProp(DampedRotarySpring, CpFloat, stiffness, Stiffness)
+defCProp(DampedRotarySpring, CpFloat, damping, Damping)
+defCProp(DampedRotarySpring, TDampedRotarySpringTorqueFunc, springTorqueFunc, SpringTorqueFunc)
 
 
-# Copyright (c) 2007 Scott Lembcke
-#  
-#  Permission is hereby granted, free of charge, to any person obtaining a copy
-#  of this software and associated documentation files (the "Software"), to deal
-#  in the Software without restriction, including without limitation the rights
-#  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-#  copies of the Software, and to permit persons to whom the Software is
-#  furnished to do so, subject to the following conditions:
-#  
-#  The above copyright notice and this permission notice shall be included in
-#  all copies or substantial portions of the Software.
-#  
-#  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-#  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-#  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-#  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-#  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-#  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-#  SOFTWARE.
-# 
-#/ @defgroup cpRotaryLimitJoint cpRotaryLimitJoint
-#/ @{
-
-proc RotaryLimitJointGetClass*(): PConstraintClass{.cdecl, 
-    importc: "cpRotaryLimitJointGetClass", dynlib: Lib.}
-#/ @private
-
-
+proc RotaryLimitJointGetClass*(): PConstraintClass{.
+  cdecl, importc: "cpRotaryLimitJointGetClass", dynlib: Lib.}
 #/ Allocate a damped rotary limit joint.
-
-proc RotaryLimitJointAlloc*(): ptr TRotaryLimitJoint{.cdecl, 
-    importc: "cpRotaryLimitJointAlloc", dynlib: Lib.}
+proc allocRotaryLimitJoint*(): PRotaryLimitJoint{.
+  cdecl, importc: "cpRotaryLimitJointAlloc", dynlib: Lib.}
 #/ Initialize a damped rotary limit joint.
-
-proc RotaryLimitJointInit*(joint: ptr TRotaryLimitJoint; a, b: PBody; 
-                            min, max: CpFloat): PRotaryLimitJoint{.
+proc init*(joint: PRotaryLimitJoint; a, b: PBody; min, max: CpFloat): PRotaryLimitJoint{.
   cdecl, importc: "cpRotaryLimitJointInit", dynlib: Lib.}
 #/ Allocate and initialize a damped rotary limit joint.
+proc newRotaryLimitJoint*(a, b: PBody; min, max: CpFloat): PConstraint{.
+  cdecl, importc: "cpRotaryLimitJointNew", dynlib: Lib.}
 
-proc RotaryLimitJointNew*(a, b: PBody; min, max: CpFloat): PConstraint{.
-    cdecl, importc: "cpRotaryLimitJointNew", dynlib: Lib.}
-# CP_DefineConstraintProperty(cpRotaryLimitJoint, cpFloat, min, Min)
-# CP_DefineConstraintProperty(cpRotaryLimitJoint, cpFloat, max, Max)
+defCProp(RotaryLimitJoint, CpFloat, min, Min)
+defCProp(RotaryLimitJoint, CpFloat, max, Max)
 
 
-
-proc RatchetJointGetClass*(): PConstraintClass{.cdecl, 
-    importc: "cpRatchetJointGetClass", dynlib: Lib.}
+proc RatchetJointGetClass*(): PConstraintClass{.
+  cdecl, importc: "cpRatchetJointGetClass", dynlib: Lib.}
 #/ Allocate a ratchet joint.
-proc RatchetJointAlloc*(): ptr TRatchetJoint{.cdecl, 
-    importc: "cpRatchetJointAlloc", dynlib: Lib.}
+proc AllocRatchetJoint*(): PRatchetJoint{.
+  cdecl, importc: "cpRatchetJointAlloc", dynlib: Lib.}
 #/ Initialize a ratched joint.
-proc RatchetJointInit*(joint: ptr TRatchetJoint; a: PBody; b: PBody; 
-                       phase: CpFloat; ratchet: CpFloat): ptr TRatchetJoint{.cdecl, 
-    importc: "cpRatchetJointInit", dynlib: Lib.}
+proc init*(joint: PRatchetJoint; a, b: PBody; phase, ratchet: CpFloat): PRatchetJoint{.
+  cdecl, importc: "cpRatchetJointInit", dynlib: Lib.}
 #/ Allocate and initialize a ratchet joint.
-proc RatchetJointNew*(a: PBody; b: PBody; phase: CpFloat; ratchet: CpFloat): PConstraint{.
-    cdecl, importc: "cpRatchetJointNew", dynlib: Lib.}
-# CP_DefineConstraintProperty(cpRatchetJoint, cpFloat, angle, Angle)
-# CP_DefineConstraintProperty(cpRatchetJoint, cpFloat, phase, Phase)
-# CP_DefineConstraintProperty(cpRatchetJoint, cpFloat, ratchet, Ratchet)
+proc NewRatchetJoint*(a, b: PBody; phase, ratchet: CpFloat): PConstraint{.
+  cdecl, importc: "cpRatchetJointNew", dynlib: Lib.}
+
+defCProp(RatchetJoint, CpFloat, angle, Angle)
+defCProp(RatchetJoint, CpFloat, phase, Phase)
+defCProp(RatchetJoint, CpFloat, ratchet, Ratchet)
+
 
 proc GearJointGetClass*(): PConstraintClass{.cdecl, 
     importc: "cpGearJointGetClass", dynlib: Lib.}
-#/ @private
-
-
 #/ Allocate a gear joint.
-
-proc GearJointAlloc*(): ptr TGearJoint{.cdecl, importc: "cpGearJointAlloc", 
-                                        dynlib: Lib.}
+proc AllocGearJoint*(): PGearJoint{.
+  cdecl, importc: "cpGearJointAlloc", dynlib: Lib.}
 #/ Initialize a gear joint.
-
-proc GearJointInit*(joint: ptr TGearJoint; a, b: PBody
-                    phase, ratio: CpFloat): PGearJoint{.
+proc init*(joint: PGearJoint; a, b: PBody, phase, ratio: CpFloat): PGearJoint{.
   cdecl, importc: "cpGearJointInit", dynlib: Lib.}
 #/ Allocate and initialize a gear joint.
+proc NewGearJoint*(a, b: PBody; phase, ratio: CpFloat): PConstraint{.
+  cdecl, importc: "cpGearJointNew", dynlib: Lib.}
 
-proc GearJointNew*(a, b: PBody; phase, ratio: CpFloat): PConstraint{.
-    cdecl, importc: "cpGearJointNew", dynlib: Lib.}
-# CP_DefineConstraintProperty(cpGearJoint, cpFloat, phase, Phase)
-# CP_DefineConstraintGetter(cpGearJoint, cpFloat, ratio, Ratio)
+defCProp(GearJoint, CpFloat, phase, Phase)
+defCGetter(GearJoint, CpFloat, ratio, Ratio)
 #/ Set the ratio of a gear joint.
-
 proc GearJointSetRatio*(constraint: PConstraint; value: CpFloat){.
   cdecl, importc: "cpGearJointSetRatio", dynlib: Lib.}
 
 
-proc SimpleMotorGetClass*(): PonstraintClass{.
+proc SimpleMotorGetClass*(): PConstraintClass{.
   cdecl, importc: "cpSimpleMotorGetClass", dynlib: Lib.}
 #/ Allocate a simple motor.
 proc AllocSimpleMotor*(): PSimpleMotor{.
@@ -1452,9 +1479,8 @@ proc init*(joint: PSimpleMotor; a, b: PBody;
 #/ Allocate and initialize a simple motor.
 proc newSimpleMotor*(a, b: PBody; rate: CpFloat): PConstraint{.
   cdecl, importc: "cpSimpleMotorNew", dynlib: Lib.}
-# CP_DefineConstraintProperty(cpSimpleMotor, cpFloat, rate, Rate)
-#/ @}
 
+defCProp(SimpleMotor, CpFloat, rate, Rate)
 
 
 
