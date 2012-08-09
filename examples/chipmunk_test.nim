@@ -9,7 +9,7 @@ type
     body: PBody
     shape: chipmunk.PShape
 var 
-  window = newRenderWindow(newVideoMode(Width, Height, 32), "Chipmunk Test", sfDefaultStyle)
+  window = newRenderWindow(videoMode(Width, Height, 32), "Chipmunk Test", sfDefaultStyle)
   space = newSpace()
   gameobjects: seq[PGameObj] = @[]
 
@@ -22,25 +22,34 @@ proc cp2sfml(v: TVector): TVector2f {.inline.} =
   result.y = v.y
 
 let
-  CBorder = 1.TLayers
-  CBall = (1 or 2).TLayers
+  ClBorder = 1.TLayers
+  ClBall = (1 or 2).TLayers
+let
+  CtBorder = 1.TCollisionType
+  CtBall = 2.TCollisionType
 
-var borders = @[
-  newVector(0.0, 0.0), 
-  newVector(Width.float, 0.0), 
-  newVector(Width.float, Height.float),
-  newVector(0.0, Height.float)]
-#borders = @[
-#  newVector(0.0, 0.0),
-#  newVector(400.0,0),
-#  newVector(400.0,400.0),
-#  newVector(0.0,  400.0)]
+proc borderballz(a: PArbiter; space: PSpace; data: pointer): bool {.cdecl.} =
+  echo("Borderballz()")
+  result = true
+space.addCollisionHandler(CtBorder, CtBall, borderballz, nil, nil, nil, nil)
+
+var borders: seq[TVector] # = @[
+#  newVector(0.0, 0.0), 
+#  newVector(Width.float, 0.0), 
+#  newVector(Width.float, Height.float),
+#  newVector(0.0, Height.float)]
+borders = @[
+  newVector(0.0, 0.0),
+  newVector(400.0,0),
+  newVector(400.0,400.0),
+  newVector(0.0,  400.0)]
 var sfBorders = newVertexArray(LinesStrip, 4)
 for i in 0..3:
   var shape = space.addStaticShape(
     newSegmentShape(space.getStaticBody(), borders[i], borders[(i+1) mod 4], 5.0))
   sfBorders[i].position = borders[i].cp2sfml
-  shape.setLayers(CBorder)
+  shape.setLayers(ClBorder)
+  shape.setCollisionType(CtBorder)
   echo($ shape.getLayers())
 
 
@@ -59,17 +68,18 @@ proc newBall(mass = 10.0, radius = 10.0): PGameObj =
   result.body = space.addBody(newBody(mass, momentForCircle(mass, 0.0, radius, vectorZero)))
   result.body.setPos pos
   result.shape = space.addShape(newCircleShape(result.body, radius, VectorZero))
-  result.shape.setLayers(CBall)
+  result.shape.setLayers(ClBall)
+  result.shape.setCollisionType(CtBall)
   echo($pos, $result.body.getPos(), $result.body.getMass()) #not being set for some reason .. >:\
 
 for i in 0..0: #50:
-  gameobjects.add(newBall((50.random + 1).float, (30.random + 5).float))
-var ball = newBall(10.2, 15.0)
+  gameobjects.add(newBall(50.0, (30.random + 5).float))
+var ball = newBall(10.0, 15.0)
 ball.sprite.setFillColor Blue
 gameobjects.add(ball)
 
 var 
-  font = getDefaultFont()
+  font = newFont("sansation.ttf")
   text = newText()
   event: TEvent
   clock = newClock()

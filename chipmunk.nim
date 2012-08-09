@@ -477,11 +477,11 @@ proc setDefaultCollisionHandler*(space: PSpace; begin: TCollisionBeginFunc;
   cdecl, importc: "cpSpaceSetDefaultCollisionHandler", dynlib: Lib.}
 #/ Set a collision handler to be used whenever the two shapes with the given collision types collide.
 #/ You can pass NULL for any function you don't want to implement.
-proc addCollisionHandler*(space: PSpace; a: TCollisionType; 
-                               b: TCollisionType; begin: TCollisionBeginFunc; 
-                               preSolve: TCollisionPreSolveFunc; 
-                               postSolve: TCollisionPostSolveFunc; 
-                               separate: TCollisionSeparateFunc; data: pointer){.
+proc addCollisionHandler*(space: PSpace; a, b: TCollisionType; 
+                           begin: TCollisionBeginFunc; 
+                           preSolve: TCollisionPreSolveFunc; 
+                           postSolve: TCollisionPostSolveFunc; 
+                           separate: TCollisionSeparateFunc; data: pointer){.
   cdecl, importc: "cpSpaceAddCollisionHandler", dynlib: Lib.}
 #/ Unset a collision handler.
 proc removeCollisionHandler*(space: PSpace; a: TCollisionType; 
@@ -595,8 +595,8 @@ proc step*(space: PSpace; dt: CpFloat) {.
 proc newVector*(x, y: CpFloat): TVector {.inline.} =
   result.x = x
   result.y = y
-let VectorZero* = newVector(0.0, 0.0)
-
+#let VectorZero* = newVector(0.0, 0.0)
+var VectorZero* = newVector(0.0, 0.0)
 
 #/ Vector dot product.
 proc dot*(v1, v2: TVector): CpFloat {.inline.} = 
