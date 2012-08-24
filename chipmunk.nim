@@ -22,8 +22,12 @@ when defined(Linux):
   const Lib = "libchipmunk.so.6.1.1"
 else:
   {.error: "Platform unsupported".}
+when defined(MoreNimrod):
+  {.hint: "MoreNimrod defined; some Chipmunk functions replaced in Nimrod".}
+{.deadCodeElim: on.}
 from math import sqrt, sin, cos, arctan2
 when defined(CpUseFloat):
+  {.hint: "CpUseFloat defined; using float32 as float".}
   type CpFloat = cfloat
 else:
   type CpFloat = cdouble
@@ -385,44 +389,6 @@ type
   TConstraintPostSolveFunc* = proc (constraint: PConstraint; space: PSpace){.
     cdecl.}
 
-#/ Version string.
-#var VersionString*{.importc: "cpVersionString", dynlib: Lib.}: cstring
-#/ Calculate the moment of inertia for a circle.
-#/ @c r1 and @c r2 are the inner and outer diameters. A solid circle has an inner diameter of 0.
-proc MomentForCircle*(m, r1, r2: CpFloat; offset: TVector): CpFloat {.
-  cdecl, importc: "cpMomentForCircle", dynlib: Lib.}
-
-#/ Calculate area of a hollow circle.
-#/ @c r1 and @c r2 are the inner and outer diameters. A solid circle has an inner diameter of 0.
-proc AreaForCircle*(r1: CpFloat; r2: CpFloat): CpFloat {.
-  cdecl, importc: "cpAreaForCircle", dynlib: Lib.}
-#/ Calculate the moment of inertia for a line segment.
-#/ Beveling radius is not supported.
-proc MomentForSegment*(m: CpFloat; a, b: TVector): CpFloat {.
-  cdecl, importc: "cpMomentForSegment", dynlib: Lib.}
-#/ Calculate the area of a fattened (capsule shaped) line segment.
-proc AreaForSegment*(a, b: TVector; r: CpFloat): CpFloat {.
-  cdecl, importc: "cpAreaForSegment", dynlib: Lib.}
-#/ Calculate the moment of inertia for a solid polygon shape assuming it's center of gravity is at it's centroid. The offset is added to each vertex.
-proc MomentForPoly*(m: CpFloat; numVerts: cint; verts: ptr TVector; offset: TVector): CpFloat {.
-  cdecl, importc: "cpMomentForPoly", dynlib: Lib.}
-#/ Calculate the signed area of a polygon. A Clockwise winding gives positive area.
-#/ This is probably backwards from what you expect, but matches Chipmunk's the winding for poly shapes.
-proc AreaForPoly*(numVerts: cint; verts: ptr TVector): CpFloat {.
-  cdecl, importc: "cpAreaForPoly", dynlib: Lib.}
-#/ Calculate the natural centroid of a polygon.
-proc CentroidForPoly*(numVerts: cint; verts: ptr TVector): TVector {.
-  cdecl, importc: "cpCentroidForPoly", dynlib: Lib.}
-#/ Center the polygon on the origin. (Subtracts the centroid of the polygon from each vertex)
-proc RecenterPoly*(numVerts: cint; verts: ptr TVector) {.
-  cdecl, importc: "cpRecenterPoly", dynlib: Lib.}
-#/ Calculate the moment of inertia for a solid box.
-proc MomentForBox*(m, width, height: CpFloat): CpFloat {.
-  cdecl, importc: "cpMomentForBox", dynlib: Lib.}
-#/ Calculate the moment of inertia for a solid box.
-proc MomentForBox2*(m: CpFloat; box: TBB): CpFloat {.
-  cdecl, importc: "cpMomentForBox2", dynlib: Lib.}
-
 ##cp property emulators
 template defGetter(otype: typedesc, memberType: typedesc, memberName: expr, procName: expr): stmt {.immediate.} =
   proc `get procName`*(obj: otype): memberType {.cdecl.} =
@@ -702,8 +668,6 @@ proc near*(v1, v2: TVector; dist: CpFloat): Bool{.inline.} =
 
 
 
-
-
 ##cpBody.h
 proc allocBody*(): PBody {.importc: "cpBodyAlloc", dynlib: Lib.}
 proc init*(body: PBody; m: CpFloat; i: CpFloat): PBody {.
@@ -754,20 +718,29 @@ proc isRogue*(body: PBody): Bool {.inline.} =
 
 defGetter(PBody, CpFloat, m, Mass)
 #/ Set the mass of a body.
-proc setMass*(body: PBody; m: CpFloat){.
-  cdecl, importc: "cpBodySetMass", dynlib: Lib.}
+when defined(MoreNimrod):
+  defSetter(PBody, CpFloat, m, Mass)
+else:
+  proc setMass*(body: PBody; m: CpFloat){.
+    cdecl, importc: "cpBodySetMass", dynlib: Lib.}
 
 #/ Get the moment of a body.
 defGetter(PBody, CpFloat, i, Moment)
 #/ Set the moment of a body.
-proc SetMoment*(body: PBody; i: CpFloat) {.
-  cdecl, importc: "cpBodySetMoment", dynlib: Lib.}
+when defined(MoreNimrod):
+  defSetter(PBody, CpFloat, i, Moment)
+else: 
+  proc SetMoment*(body: PBody; i: CpFloat) {.
+    cdecl, importc: "cpBodySetMoment", dynlib: Lib.}
 
 #/ Get the position of a body.
 defGetter(PBody, TVector, p, Pos)
 #/ Set the position of a body.
-proc setPos*(body: PBody; pos: TVector) {.
-  cdecl, importc: "cpBodySetPos", dynlib: Lib.}
+when defined(MoreNimrod):
+  defSetter(PBody, TVector, p, Pos)
+else:
+  proc setPos*(body: PBody; pos: TVector) {.
+    cdecl, importc: "cpBodySetPos", dynlib: Lib.}
 
 defProp(PBody, TVector, v, Vel)
 defProp(PBody, TVector, f, Force)
@@ -1098,6 +1071,51 @@ proc getSegmentNormal*(shape: PShape): TVector {.
   cdecl, importc: "cpSegmentShapeGetNormal", dynlib: Lib.}
 proc getSegmentRadius*(shape: PShape): CpFloat {.
   cdecl, importc: "cpSegmentShapeGetRadius", dynlib: Lib.}
+
+
+#/ Version string.
+#var VersionString*{.importc: "cpVersionString", dynlib: Lib.}: cstring
+#/ Calculate the moment of inertia for a circle.
+#/ @c r1 and @c r2 are the inner and outer diameters. A solid circle has an inner diameter of 0.
+when defined(MoreNimrod):
+  proc momentForCircle*(m, r1, r2: CpFloat; offset: TVector): CpFloat {.cdecl.} =
+    result = m * (0.5 * (r1 * r1 + r2 * r2) + lenSq(offset))
+else:
+  proc momentForCircle*(m, r1, r2: CpFloat; offset: TVector): CpFloat {.
+    cdecl, importc: "cpMomentForCircle", dynlib: Lib.}
+
+#/ Calculate area of a hollow circle.
+#/ @c r1 and @c r2 are the inner and outer diameters. A solid circle has an inner diameter of 0.
+proc AreaForCircle*(r1: CpFloat; r2: CpFloat): CpFloat {.
+  cdecl, importc: "cpAreaForCircle", dynlib: Lib.}
+#/ Calculate the moment of inertia for a line segment.
+#/ Beveling radius is not supported.
+proc MomentForSegment*(m: CpFloat; a, b: TVector): CpFloat {.
+  cdecl, importc: "cpMomentForSegment", dynlib: Lib.}
+#/ Calculate the area of a fattened (capsule shaped) line segment.
+proc AreaForSegment*(a, b: TVector; r: CpFloat): CpFloat {.
+  cdecl, importc: "cpAreaForSegment", dynlib: Lib.}
+#/ Calculate the moment of inertia for a solid polygon shape assuming it's center of gravity is at it's centroid. The offset is added to each vertex.
+proc MomentForPoly*(m: CpFloat; numVerts: cint; verts: ptr TVector; offset: TVector): CpFloat {.
+  cdecl, importc: "cpMomentForPoly", dynlib: Lib.}
+#/ Calculate the signed area of a polygon. A Clockwise winding gives positive area.
+#/ This is probably backwards from what you expect, but matches Chipmunk's the winding for poly shapes.
+proc AreaForPoly*(numVerts: cint; verts: ptr TVector): CpFloat {.
+  cdecl, importc: "cpAreaForPoly", dynlib: Lib.}
+#/ Calculate the natural centroid of a polygon.
+proc CentroidForPoly*(numVerts: cint; verts: ptr TVector): TVector {.
+  cdecl, importc: "cpCentroidForPoly", dynlib: Lib.}
+#/ Center the polygon on the origin. (Subtracts the centroid of the polygon from each vertex)
+proc RecenterPoly*(numVerts: cint; verts: ptr TVector) {.
+  cdecl, importc: "cpRecenterPoly", dynlib: Lib.}
+#/ Calculate the moment of inertia for a solid box.
+proc MomentForBox*(m, width, height: CpFloat): CpFloat {.
+  cdecl, importc: "cpMomentForBox", dynlib: Lib.}
+#/ Calculate the moment of inertia for a solid box.
+proc MomentForBox2*(m: CpFloat; box: TBB): CpFloat {.
+  cdecl, importc: "cpMomentForBox2", dynlib: Lib.}
+
+
 
 ##constraints
 type 
