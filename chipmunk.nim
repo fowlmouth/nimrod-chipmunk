@@ -28,13 +28,13 @@ when defined(MoreNimrod):
 from math import sqrt, sin, cos, arctan2
 when defined(CpUseFloat):
   {.hint: "CpUseFloat defined; using float32 as float".}
-  type CpFloat = cfloat
+  type CpFloat* = cfloat
 else:
-  type CpFloat = cdouble
+  type CpFloat* = cdouble
 const 
   CP_BUFFER_BYTES* = (32 * 1024)  
   CP_MAX_CONTACTS_PER_ARBITER* = 4
-  CpInfinity: CpFloat = 1.0/0
+  CpInfinity*: CpFloat = 1.0/0
 {.pragma: pf, pure, final.}
 type 
   Bool32* = cint  #replace one day with cint-compatible bool
@@ -43,8 +43,8 @@ type
     x*, y*: CpFloat
   TTimestamp* = cuint
   TBodyVelocityFunc* = proc(body: PBody, gravity: TVector,
-                            damping: CpFloat; dt: CpFloat)
-  TBodyPositionFunc* = proc(body: PBody; dt: CpFloat)
+                            damping: CpFloat; dt: CpFloat){.cdecl.}
+  TBodyPositionFunc* = proc(body: PBody; dt: CpFloat){.cdecl.}
   TComponentNode*{.pf.} = object 
     root*: PBody
     next*: PBody
@@ -268,7 +268,7 @@ type
                                         data: pointer) {.cdecl.}
   #/ Body/arbiter iterator callback function type. 
   TBodyArbiterIteratorFunc* = proc (body: PBody; arbiter: PArbiter; 
-                                     data: pointer)
+                                     data: pointer) {.cdecl.}
   
   PNearestPointQueryInfo* = ptr TNearestPointQueryInfo
   #/ Nearest point query info struct.
@@ -558,9 +558,11 @@ proc step*(space: PSpace; dt: CpFloat) {.
 
 
 #/ Convenience constructor for cpVect structs.
-proc newVector*(x, y: CpFloat): TVector {.inline.} =
+proc vector*(x, y: CpFloat): TVector {.inline.} =
   result.x = x
   result.y = y
+proc newVector*(x, y: CpFloat): TVector {.inline.} =
+  return vector(x, y)
 #let VectorZero* = newVector(0.0, 0.0)
 var VectorZero* = newVector(0.0, 0.0)
 
