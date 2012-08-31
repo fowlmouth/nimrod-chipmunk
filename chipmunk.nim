@@ -604,11 +604,14 @@ proc `+`*(v1, v2: TVector): TVector {.inline.} =
   result = newVector(v1.x + v2.x, v1.y + v2.y)
 proc `+=`*(v1: var TVector; v2: TVector) =
   v1.x = v1.x + v2.x
-  v2.y = v1.y + v2.y
+  v1.y = v1.y + v2.y
 
 #/ Subtract two vectors.
 proc `-`*(v1, v2: TVector): TVector {.inline.} =
   result = newVector(v1.x - v2.x, v1.y - v2.y)
+proc `-=`*(v1: var TVector; v2: TVector) =
+  v1.x = v1.x - v2.x
+  v1.y = v1.y - v2.y
 
 #/ Negate a vector.
 proc `-`*(v: TVector): TVector {.inline.} = 
