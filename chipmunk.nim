@@ -501,8 +501,8 @@ proc pointQuery*(space: PSpace; point: TVector; layers: TLayers;
 
 #/ Query the space at a point and return the first shape found. Returns NULL if no shapes were found.
 proc pointQueryFirst*(space: PSpace; point: TVector; layers: TLayers; 
-                       group: TGroup): PShape{.cdecl, 
-    importc: "cpSpacePointQueryFirst", dynlib: Lib.}
+                       group: TGroup): PShape{.
+  cdecl, importc: "cpSpacePointQueryFirst", dynlib: Lib.}
 
 #/ Perform a directed line segment query (like a raycast) against the space calling @c func for each shape intersected.
 proc segmentQuery*(space: PSpace; start: TVector; to: TVector; 
@@ -602,6 +602,9 @@ proc `==`*(v1, v2: TVector): bool {.inline.} =
 #/ Add two vectors
 proc `+`*(v1, v2: TVector): TVector {.inline.} =
   result = newVector(v1.x + v2.x, v1.y + v2.y)
+proc `+=`*(v1: var TVector; v2: TVector) =
+  v1.x = v1.x + v2.x
+  v2.y = v1.y + v2.y
 
 #/ Subtract two vectors.
 proc `-`*(v1, v2: TVector): TVector {.inline.} =
@@ -613,7 +616,11 @@ proc `-`*(v: TVector): TVector {.inline.} =
 
 #/ Scalar multiplication.
 proc `*`*(v: TVector, s: CpFloat): TVector {.inline.} =
-  result = newVector(v.x * s, v.y * s)
+  result.x = v.x * s
+  result.y = v.y * s
+proc `*=`*(v: var TVector; s: CpFloat) =
+  v.x = v.x * s
+  v.y = v.y * s
 
 #/ 2D vector cross product analog.
 #/ The cross product of 2D vectors results in a 3D vector with only a z component.
