@@ -999,7 +999,7 @@ proc setBody*(shape: PShape, value: PBody) {.
 
 defGetter(PShape, TBB, bb, BB)
 defShapeProp(Bool32, sensor, Sensor, true)
-defShapeProp(CpFloat, e, Elasiticity, false)
+defShapeProp(CpFloat, e, Elasticity, false)
 defShapeProp(CpFloat, u, Friction, true)
 defShapeProp(TVector, surface_v, SurfaceVelocity, true)
 defShapeProp(pointer, data, UserData, false)
