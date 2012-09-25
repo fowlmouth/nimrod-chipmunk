@@ -724,14 +724,25 @@ proc isRogue*(body: PBody): Bool {.inline.} =
 # 	cpBodyAssertSane(body); \
 # 	body->member = value; \
 # }
+template defBodySetter(fieldType: typedesc;
+                            fieldName, procName: expr): stmt {.immediate.} =
+  proc `set procName`*(body: PBody; value: fieldType) =
+    body.activate()
+    ##assertsane(body) ##<-- implement this, one day..
+    body.fieldName = value
 # #define CP_DefineBodyStructProperty(type, member, name) \
 # CP_DefineBodyStructGetter(type, member, name) \
 # CP_DefineBodyStructSetter(type, member, name)
+template defBodyProp(fieldType: typedesc; 
+                      fieldName, procName: expr): stmt {.immediate.} =
+  defBodySetter(fieldType, fieldName, procName)
+  defGetter(PBody, fieldType, fieldName, procName)
+
 
 defGetter(PBody, CpFloat, m, Mass)
 #/ Set the mass of a body.
 when defined(MoreNimrod):
-  defSetter(PBody, CpFloat, m, Mass)
+  defBodySetter(CpFloat, m, Mass)
 else:
   proc setMass*(body: PBody; m: CpFloat){.
     cdecl, importc: "cpBodySetMass", dynlib: Lib.}
@@ -740,7 +751,7 @@ else:
 defGetter(PBody, CpFloat, i, Moment)
 #/ Set the moment of a body.
 when defined(MoreNimrod):
-  defSetter(PBody, CpFloat, i, Moment)
+  defBodySetter(CpFloat, i, Moment)
 else: 
   proc SetMoment*(body: PBody; i: CpFloat) {.
     cdecl, importc: "cpBodySetMoment", dynlib: Lib.}
@@ -749,13 +760,13 @@ else:
 defGetter(PBody, TVector, p, Pos)
 #/ Set the position of a body.
 when defined(MoreNimrod):
-  defSetter(PBody, TVector, p, Pos)
+  defBodySetter(TVector, p, Pos)
 else:
   proc setPos*(body: PBody; pos: TVector) {.
     cdecl, importc: "cpBodySetPos", dynlib: Lib.}
 
-defProp(PBody, TVector, v, Vel)
-defProp(PBody, TVector, f, Force)
+defBodyProp(TVector, v, Vel)
+defBodyProp(TVector, f, Force)
 
 #/ Get the angle of a body.
 defGetter(PBody, CpFloat, a, Angle)
@@ -763,12 +774,12 @@ defGetter(PBody, CpFloat, a, Angle)
 proc setAngle*(body: PBody; a: CpFloat){.
   cdecl, importc: "cpBodySetAngle", dynlib: Lib.}
 
-defProp(PBody, CpFloat, w, AngVel)
-defProp(PBody, CpFloat, t, Torque)
+defBodyProp(CpFloat, w, AngVel)
+defBodyProp(CpFloat, t, Torque)
 defGetter(PBody, TVector, rot, Rot)
-defProp(PBody, CpFloat, v_limit, VelLimit)
-defProp(PBody, CpFloat, w_limit, AngVelLimit)
-defProp(PBody, pointer, data, UserData)
+defBodyProp(CpFloat, v_limit, VelLimit)
+defBodyProp(CpFloat, w_limit, AngVelLimit)
+defBodyProp(pointer, data, UserData)
 
 #/ Default Integration functions.
 proc UpdateVelocity*(body: PBody; gravity: TVector; damping: CpFloat; dt: CpFloat){.
