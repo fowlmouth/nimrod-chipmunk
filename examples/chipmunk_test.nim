@@ -1,5 +1,5 @@
-import chipmunk, sfml, sfml_colors, sfml_vector
-import math
+import 
+  chipmunk, sfml, sfml_colors, math
 const
   Width = 800
   Height= 600
@@ -66,7 +66,7 @@ proc newBall(mass = 10.0, radius = 10.0): PGameObj =
   result.sprite = newCircleShape()
   result.sprite.setRadius(radius)
   result.body = space.addBody(newBody(mass, momentForCircle(mass, 0.0, radius, vectorZero)))
-  result.body.setPos pos
+  result.body.p = pos
   result.shape = space.addShape(newCircleShape(result.body, radius, VectorZero))
   result.shape.setLayers(ClBall)
   result.shape.setCollisionType(CtBall)
