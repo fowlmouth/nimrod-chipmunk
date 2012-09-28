@@ -16,9 +16,10 @@ var
   fps = newClock()
   guiFont = newFont(FontFile)
   view = window.getDefaultView.copy()
-  
+const
+  LGrabbable = (1 shl 0).TLayers
+
 window.setFramerateLimit 60
-space.setGravity vector(0, 20)
 
 randomize()
 
@@ -38,14 +39,23 @@ block:
     var body = space.addBody(newBody((rand(1000) / 1000 * 10.0), 500.0))
     var shape = space.addShape(body.newCircleShape(random(10000) / 700, vectorZero))
     body.setPos randomPoint(area)
+    shape.setLayers LGrabbable
   for i in 0..20:
     var body = space.addBody(newBody((rand(1000) / 1000 * 10.0), 500.0))
     var shape = space.addShape(body.newBoxShape(random(30).float, random(12).float))
     body.setPos randomPoint(area)
+    shape.setLayers LGrabbable
 
 debugDrawInit space
 
-var fpsText = newText("", guiFont, 16)
+proc vector(vec: TVector2i): TVector =
+  result.x = vec.x.float
+  result.y = vec.y.float
+
+var 
+  fpsText = newText("", guiFont, 16)
+  mousePos = vector(0,0)
+  activeShape: chipmunk.PShape
 while window.isOpen():
   while window.pollEvent(event):
     case event.kind
@@ -56,8 +66,24 @@ while window.isOpen():
         view.zoom(0.9)
       elif event.mouseWheel.delta == -1: ##down
         view.zoom(1.1)
+    of EvtMouseMoved:
+      mousePos.x = event.mouseMove.x.float
+      mousePos.y = event.mouseMove.y.float
+    of EvtMouseButtonPressed:
+      if event.mouseButton.button == MouseLeft:
+        var shape = space.pointQueryFirst(mousePos, LGrabbable, 0)
+        if not shape.isNil:
+          activeShape = shape
+        else:
+          echo "I got nothin'"
+    of EvtMouseButtonReleased:
+      if event.mouseButton.button == MouseLeft:
+        activeShape = nil
     else: discard
-   
+  
+  if not activeShape.isNil:
+    activeShape.body.setPos mousePos
+  
   let dt = fps.restart.asMilliseconds() / 1000
   space.step(dt)
   
