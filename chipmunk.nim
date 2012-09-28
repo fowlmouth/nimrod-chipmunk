@@ -299,7 +299,7 @@ type
     segmentQuery*: TShapeSegmentQueryImpl
   PShape* = ptr TShape
   TShape*{.pf.} = object 
-    klass: PShapeClass   #/ PRIVATE
+    klass*: PShapeClass   #/ PRIVATE
     body*: PBody           #/ The rigid body this collision shape is attached to.
     bb*: TBB               #/ The current bounding box of the shape.   
     sensor*: Bool32        #/ Sensor flag.
