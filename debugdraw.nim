@@ -95,3 +95,8 @@ proc removeShape*(space: PSpace; shape: chipmunk.PShape, deallocData = true) =
     else: discard
     if deallocData:
       dealloc(shape.data)
+
+proc getUserData*(shape: chipmunk.PShape): pointer {.inline.} = 
+  return cast[PShapeData](shape.data)[0]
+proc setUserData*(shape: chipmunk.PShape; data: pointer) {.inline.} = 
+  cast[PShapeData](shape.data)[0] = data
