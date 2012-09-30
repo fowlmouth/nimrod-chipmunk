@@ -444,10 +444,11 @@ proc setDefaultCollisionHandler*(space: PSpace; begin: TCollisionBeginFunc;
 #/ Set a collision handler to be used whenever the two shapes with the given collision types collide.
 #/ You can pass NULL for any function you don't want to implement.
 proc addCollisionHandler*(space: PSpace; a, b: TCollisionType; 
-                           begin: TCollisionBeginFunc; 
-                           preSolve: TCollisionPreSolveFunc; 
-                           postSolve: TCollisionPostSolveFunc; 
-                           separate: TCollisionSeparateFunc; data: pointer){.
+                           begin: TCollisionBeginFunc = nil; 
+                           preSolve: TCollisionPreSolveFunc = nil; 
+                           postSolve: TCollisionPostSolveFunc = nil; 
+                           separate: TCollisionSeparateFunc = nil; 
+                           data: pointer = nil){.
   cdecl, importc: "cpSpaceAddCollisionHandler", dynlib: Lib.}
 #/ Unset a collision handler.
 proc removeCollisionHandler*(space: PSpace; a: TCollisionType; 
@@ -584,8 +585,9 @@ proc slerpconst*(v1, v2: TVector; a: CpFloat): TVector {.
 #/ Returns the unit length vector for the given angle (in radians).
 #proc vectorForAngle*(a: CpFloat): TVector {.
 #  cdecl, importc: "cpvforangle", dynlib: Lib.}
-proc vectorForAngle*(a: CpFloat): TVector {.inline.} =
+proc vector*(a: CpFloat): TVector =
   result = newVector(math.cos(a), math.sin(a))
+template vectorForAngle*(rads: CpFloat): TVector = vector(rads)
 #/ Returns the angular direction v is pointing in (in radians).
 proc toAngle*(v: TVector): CpFloat {.inline.} =
   result = math.arctan2(v.y, v.x)
