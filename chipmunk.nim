@@ -1011,7 +1011,12 @@ proc setBody*(shape: PShape, value: PBody) {.
 
 
 defGetter(PShape, TBB, bb, BB)
-defShapeProp(Bool32, sensor, Sensor, true)
+#defShapeProp(Bool32, sensor, Sensor, true)
+proc setSensor*(obj: PShape, value: bool) {.cdecl.} =
+  if obj.body != nil: obj.body.activate()
+  obj.sensor = value.bool32
+proc getSensor*(obj: PShape): bool {.cdecl.} = return obj.sensor.bool
+
 defShapeProp(CpFloat, e, Elasticity, false)
 defShapeProp(CpFloat, u, Friction, true)
 defShapeProp(TVector, surface_v, SurfaceVelocity, true)
