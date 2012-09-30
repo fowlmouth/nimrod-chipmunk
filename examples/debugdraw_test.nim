@@ -37,9 +37,7 @@ var forceMult = -2000.0
 proc repel(arb: PArbiter; space: PSpace; data: pointer): bool {.cdecl.} =
   let 
     dist = arb.bodyA.getPos() - arb.bodyB.getPos()
-    lenSq= dist.lenSq()
-    norml= dist.normalize()
-  arb.bodyB.applyImpulse(norml * (1.0 / sqrt(lenSq) * forceMult), vectorZero)
+  arb.bodyB.applyImpulse(dist.normalize() * (1.0 / dist.len() * forceMult), vectorZero)
   
 
 randomize()
@@ -49,17 +47,15 @@ space.addCollisionHandler(CtExpl, CtClutter, preSolve = repel)
 
 var explosions: seq[PExplosion] = @[]
 
-type PUserData = ptr tuple[x: PExplosion; z: pointer]
+type PUserData = ptr tuple[x: PExplosion; sprite: pointer]
 
-template USERDATA(a: pointer): PUserData = cast[PUserData](a)
-template UserCircle(a: pointer): sfml.PCircleShape =
-  cast[sfml.PCircleShape](USERDATA(a).z)
+template USERDATA(a: pointer): PUserData = cast[PUserData](a.data)
+template UserCircle(a: chipmunk.PShape): sfml.PCircleShape =
+  cast[sfml.PCircleShape](USERDATA(a).sprite)
 
 proc free(expl: PExplosion) =
   expl.shape.body.free()
-  #cast[sfml.PCircleShape](expl.shape.data).destroy()
   expl.shape.free()
-  echo "Explosion free'd"
 
 proc createExplosion(point: TVector, lifetime: float) =
   var x: PExplosion
@@ -68,11 +64,11 @@ proc createExplosion(point: TVector, lifetime: float) =
   var b = newBody(CpInfinity, CpInfinity)
   b.setPos point
   x.shape = newCircleShape(b, 150, vectorZero)
-  x.shape.setSensor true.bool32
+  x.shape.setSensor true
   x.shape.setCollisionType CtExpl
   explosions.add x  
   debugDraw.addShape(space, x.shape, cast[pointer](x)) 
-  var cs = UserCircle(x.shape.data)
+  var cs = UserCircle(x.shape)
   cs.setOutlineColor Red
   cs.setOutlineThickness 3.4
   cs.setFillColor Transparent
@@ -115,7 +111,16 @@ var
   debugText = fpsText.copy()
   mousePos = vector(0,0)
   activeShape: chipmunk.PShape
+  mouseShape = debugDraw.addShape(
+    space, newCircleShape(
+      space.getStaticBody(), 20.0, vectorZero))
 debugtext.setPosition(fpstext.getPosition() + vec2f(0, 16))
+
+block:
+  let circ = USERCIRCLE(mouseShape)
+  circ.setOutlineColor Blue
+  circ.setFillColor Transparent
+  circ.setOutlineThickness 1.2
 
 while window.isOpen():
   while window.pollEvent(event):
@@ -131,6 +136,7 @@ while window.isOpen():
     of EvtMouseMoved:
       mousePos.x = event.mouseMove.x.CpFloat
       mousePos.y = event.mouseMove.y.CpFloat
+      mouseShape.body.setPos mousePos
     of EvtMouseButtonPressed:
       case event.mouseButton.button
       of MouseLeft:
@@ -151,13 +157,14 @@ while window.isOpen():
   
   let dt = fps.restart.asMilliseconds() / 1000
   
+  fpsText.setString(formatFloat((1.0 / dt), ffDecimal, 2))
+  
   var i = 0
   while i < explosions.len:
     explosions[i].lifetime -= dt
     if explosions[i].lifetime < 0:
       debugdraw.removeShape(space, explosions[i].shape)
       explosions.del i
-      echo "Explosion expired"
     else:
       inc i
   if not activeShape.isNil:
@@ -165,13 +172,12 @@ while window.isOpen():
   
   space.step(dt)
   
-  fpsText.setString(formatFloat((1.0 / dt), ffDecimal, 2))
-  
   window.clear black
-  
   window.setView view
   
+  ## this is all thats required to draw all the shapes
   window.draw space
+  
   window.draw fpsText
   window.draw debugText
   
