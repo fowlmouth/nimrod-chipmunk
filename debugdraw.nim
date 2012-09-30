@@ -17,7 +17,7 @@ proc floor(vec: TVector): TVector2f =
 proc degrees(rad: float): float = rad * PI / 180.0
 
 template WINDOW(a: pointer): PRenderWindow = cast[PRenderWindow](a)
-template TOSPRITE(a: chipmunk.PShape, to: typedesc): expr =
+template TOSPRITE*(a: chipmunk.PShape, to: typedesc): expr =
   cast[to](cast[PShapeData](a.data)[1])
  
 proc drawShape(shape: chipmunk.PShape, winda: pointer) {.cdecl.} =
