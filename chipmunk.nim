@@ -19,7 +19,7 @@
 #  SOFTWARE.
 # 
 when defined(Linux):
-  const Lib = "libchipmunk.so.6.1.1"
+  const Lib = "libchipmunk.so.6.1.(1|2|3|4|5)"
 else:
   {.error: "Platform unsupported".}
 when defined(MoreNimrod):
