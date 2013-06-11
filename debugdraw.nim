@@ -1,4 +1,4 @@
-import sfml, sfml_colors, chipmunk, math
+import csfml, csfml_colors, chipmunk, math
 type
   ## TShapeData is created when the shape is initialized or added to the space
   ## field[0] is whatever userdata you pass to it in addShape()
@@ -24,15 +24,15 @@ proc drawShape(shape: chipmunk.PShape, winda: pointer) {.cdecl.} =
   case shape.klass.kind
   of CP_CIRCLE_SHAPE:
     let 
-      circ = TOSPRITE(shape, sfml.PCircleShape)
+      circ = TOSPRITE(shape, csfml.PCircleShape)
       body = shape.getBody()
     circ.setPosition body.getPos.floor()
     WINDOW(winda).draw circ
   of CP_SEGMENT_SHAPE:
-    WINDOW(winda).draw TOSPRITE(shape, sfml.PVertexArray)
+    WINDOW(winda).draw TOSPRITE(shape, csfml.PVertexArray)
   of CP_POLY_SHAPE:
     let 
-      poly = TOSPRITE(shape, sfml.PConvexShape)
+      poly = TOSPRITE(shape, csfml.PConvexShape)
       body = shape.getBody()
     poly.setPosition body.getPos.floor
     poly.setRotation body.getAngle.degrees
@@ -50,20 +50,20 @@ proc initializeShape(shape: chipmunk.PShape; userData: pointer = nil) {.cdecl.} 
   
   case shape.klass.kind
   of CP_CIRCLE_SHAPE:
-    var circ = sfml.newCircleShape(shape.getCircleRadius(), 30)
+    var circ = csfml.newCircleShape(shape.getCircleRadius(), 30)
     let radius = shape.getCircleRadius()
     circ.setOrigin vec2f(radius, radius)
     circ.setFillColor colors[CP_CIRCLE_SHAPE]
     data[1] = circ
   of CP_SEGMENT_SHAPE:
-    var seg = sfml.newVertexArray(sfml.Lines, 2)
+    var seg = csfml.newVertexArray(csfml.Lines, 2)
     seg[0].position = shape.getSegmentA.cp2sfml()
     seg[1].position = shape.getSegmentB.cp2sfml()
     seg[0].color = colors[CP_SEGMENT_SHAPE]
     seg[1].color = colors[CP_SEGMENT_SHAPE]
     data[1] = seg
   of CP_POLY_SHAPE:
-    var poly = sfml.newConvexShape(shape.getNumVerts())
+    var poly = csfml.newConvexShape(shape.getNumVerts())
     for i in 0.. <shape.getNumVerts():
       poly.setPoint i.cuint, shape.getVert(i).cp2sfml()
     poly.setFillColor colors[CP_POLY_SHAPE]
@@ -90,8 +90,8 @@ proc removeShape*(space: PSpace; shape: chipmunk.PShape, deallocData = true) =
   if not shape.data.isNil:
     case shape.klass.kind
     of CP_SEGMENT_SHAPE: TOSPRITE(shape, PVertexArray).destroy()
-    of CP_POLY_SHAPE: TOSPRITE(shape, sfml.PRectangleShape).destroy()
-    of CP_CIRCLE_SHAPE: TOSPRITE(shape, sfml.PCircleShape).destroy()
+    of CP_POLY_SHAPE: TOSPRITE(shape, csfml.PRectangleShape).destroy()
+    of CP_CIRCLE_SHAPE: TOSPRITE(shape, csfml.PCircleShape).destroy()
     else: discard
     if deallocData:
       dealloc(shape.data)
