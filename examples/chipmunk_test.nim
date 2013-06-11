@@ -1,11 +1,11 @@
 import 
-  chipmunk, sfml, sfml_colors, math
+  chipmunk, csfml, csfml_colors, math
 const
   Width = 800
   Height= 600
 type 
   PGameObj = ref object
-    sprite: sfml.PCircleShape
+    sprite: csfml.PCircleShape
     body: PBody
     shape: chipmunk.PShape
 var 

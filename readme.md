@@ -1,6 +1,6 @@
 ## Chipmunk
 
-[Chipmunk 6.1.1](http://chipmunk-physics.net/ "Chipmunk") bindings for 
+[Chipmunk 6.1.*](http://chipmunk-physics.net/ "Chipmunk") bindings for 
 [Nimrod 0.9.0](http://nimrod-code.org "Nimrod")
 
 ## Using DebugDraw

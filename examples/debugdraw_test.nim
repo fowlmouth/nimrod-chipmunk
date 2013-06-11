@@ -1,4 +1,4 @@
-import sfml, chipmunk, debugDraw, sfml_colors, math,
+import csfml, chipmunk, debugDraw, csfml_colors, math,
   strutils
 const
   ScreenW = 800
@@ -9,7 +9,7 @@ var
   window = newRenderWindow(
     videoMode(800, 600, 32), 
     "chipmunk debugdraw", sfClose or sfTitlebar)
-  event: sfml.TEvent
+  event: csfml.TEvent
   fps = newClock()
   guiFont = newFont(FontFile)
   view = window.getDefaultView.copy()
@@ -49,9 +49,9 @@ var explosions: seq[PExplosion] = @[]
 
 type PUserData = ptr tuple[x: PExplosion; sprite: pointer]
 
-template USERDATA(a: pointer): PUserData = cast[PUserData](a.data)
-template UserCircle(a: chipmunk.PShape): sfml.PCircleShape =
-  cast[sfml.PCircleShape](USERDATA(a).sprite)
+template USERDATA(a: chipmunk.PShape): PUserData = cast[PUserData](a.data)
+template UserCircle(a: chipmunk.PShape): csfml.PCircleShape =
+  cast[csfml.PCircleShape](USERDATA(a).sprite)
 
 proc free(expl: PExplosion) =
   expl.shape.body.free()
