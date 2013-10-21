@@ -1,5 +1,5 @@
 
-import chipmunk, sfml, sfml_colors, math, debugDraw
+import chipmunk, csfml, csfml_colors, math, debugDraw
 
 const
   gravityStrength = 50.CpFloat
@@ -33,7 +33,7 @@ proc addPlanet() =
     body = space.addBody(newBody(mass, momentForCircle(mass, 0.0, radius, vectorZero)))
     shape = debugDraw.addShape(space, body.newCircleShape(radius, vectorZero))
     gravity = debugDraw.addShape(space, body.newCircleShape(gravityRadius, vectorZero))
-    gravityCirc = TOSPRITE(gravity, sfml.PCircleShape)
+    gravityCirc = TOSPRITE(gravity, csfml.PCircleShape)
   body.setPos randomPoint(screenArea)
   shape.setCollisionType CTplanet
   gravity.setSensor true
