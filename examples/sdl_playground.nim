@@ -1,6 +1,6 @@
 import 
   fowltek/sdl2/engine,
-  chipmunk, math, basic2d
+  chipmunk, math, basic2d, json, strutils
 import_all_sdl2_things
 randomize()
 
@@ -10,9 +10,9 @@ var
   running = true
 let
   winSize = NG.window.getSize
-  
-space.setGravity newVector(0,9.8)
+  data = json.parseFile("sdl_playground.json")
 
+discard """
 proc addCircle (
     pos = newVector(winSize.x.random.cpfloat, winSize.y.random.cpfloat);
     mass = 0.9;
@@ -32,11 +32,61 @@ proc addBox (
     shape = space.addShape(
       newBoxShape(body, width, height))
   body.p = pos
+"""
 
+proc getFloat (some: PJsonNode): float =
+  case some.kind
+  of JFloat: some.fnum.float
+  of JInt: some.num.float
+  of JString: some.str.parseFloat
+  else: 0.0
 
-iterator times (n: int): int =
-  for i in 1 .. n: yield n
+proc getVector (some: PJsonNode): TVector =
+  TVector(x: some[0].getFLoat, y: some[1].getFloat)
 
+proc loadBody (item: PJsonNode): PBody =
+  let mass = item["mass"].getFloat
+  case item["shape"].str.normalize
+  of "circle":
+    result = newBody(mass, momentForCircle(mass, 0.0, item["radius"].getFloat, vectorZero))
+  of "box":
+    result = newBody(mass, momentForBox(mass, item["width"].getFloat, item["height"].getFloat))
+  else:
+    nil
+  
+  if not result.isNil:
+    result.p = item["position"].getVector
+
+proc loadShape (item: PJsonNode, body: PBody): PShape =
+  case item["shape"].str.normalize
+  of "circle":
+    newCircleShape(body, item["radius"].getFloat, vectorZero)
+  of "box": 
+    newBoxShape(body, item["width"].getFloat, item["height"].getFloat)
+  of "segment":
+    let
+      a = item["a"].getVector
+      b = item["b"].getVector
+      w = if item.existsKey("width"): item["width"].getFLoat else: 2.0
+    newSegmentShape(body, a, b, w)
+  else: nil
+
+proc loadScene (scene: string) =
+  let scene = data[scene]
+  
+  space.setGravity scene["gravity"].getVector
+  
+  if scene.existsKey("static"):
+    for it in scene["static"]:
+      discard space.addStaticShape(it.loadShape(space.getStaticBody))
+  
+  if scene.existsKey("dynamic"):
+    for it in scene["dynamic"]:
+      discard space.addShape(it.loadShape(space.addBody(it.loadBody)))
+
+loadScene "basic"
+
+discard """
 block:
   let borders = [
     newVector(0, 0), newVector(winSize.x.cpfloat, 0),
@@ -50,6 +100,7 @@ block:
     addCircle(radius = random(3 .. 10).float)
   for i in random(100).times:
     addBox(width = random(5 .. 15).float, height = random(6 .. 12).float)
+"""
 
 NG.addHandler do(E: PSdlEngine) -> bool:
   result = E.evt.kind == QuitEvent
@@ -59,7 +110,7 @@ var
   mouseBody = space.addBody(newBody(1.0, 1.0))
   mouseJoint: PConstraint
 
-import typeinfo, strutils
+import typeinfo
 proc ff (f: float; prec = 2; fmt = ffDecimal):string{.inline.} =
   formatFloat(f, fmt, prec)
 

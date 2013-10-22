@@ -1,0 +1,35 @@
+{
+  "basic": {
+    "gravity": [0, 9.8],
+    "static": [
+      { "shape": "segment", 
+        "a": [0,0],
+        "b": [0,480] },
+      { "shape": "segment", 
+        "a": [0,0],
+        "b": [640,0] },
+      { "shape": "segment", 
+        "a": [640,0],
+        "b": [640,480] },
+      { "shape": "segment", 
+        "a": [640,480],
+        "b": [0,480] }
+    ],
+    "dynamic": [
+      { "shape": "circle",
+        "position": [100,110],
+        "radius": 8,
+        "mass": 0.58 },
+      { "shape": "circle",
+        "position": [110,100],
+        "radius": 10, "mass": 0.98},
+      { "shape": "circle",
+        "position": [120,100],
+        "radius": 10, "mass": 1.2},
+      { "shape": "box",
+        "position": [100,150],
+        "width": 14, "height": 7,
+        "mass": 2.3 }
+    ]
+  }
+}
