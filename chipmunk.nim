@@ -19,7 +19,7 @@
 #  SOFTWARE.
 # 
 when defined(Linux):
-  const Lib = "libchipmunk.so.6.1.(1|2|3|4|5)"
+  const Lib = "libchipmunk.so.6.(1|2).(0|1|2|3|4|5)"
 else:
   {.error: "Platform unsupported".}
 when defined(MoreNimrod):
@@ -39,7 +39,7 @@ const
 type 
   Bool32* = cint  #replace one day with cint-compatible bool
   CpDataPointer* = pointer
-  TVector* {.final, pure.} = object
+  TVector* {.final, pure.} = tuple
     x*, y*: CpFloat
   TTimestamp* = cuint
   TBodyVelocityFunc* = proc(body: PBody, gravity: TVector,
@@ -65,6 +65,7 @@ type
     e*: CpFloat
     u*: CpFloat 
     surface_vr*: TVector
+    data*: pointer
     a*: PShape
     b*: PShape
     body_a*: PBody
