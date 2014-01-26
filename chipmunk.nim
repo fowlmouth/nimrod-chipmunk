@@ -35,12 +35,19 @@ const
   CP_BUFFER_BYTES* = (32 * 1024)  
   CP_MAX_CONTACTS_PER_ARBITER* = 4
   CpInfinity*: CpFloat = 1.0/0
+
+import basic2d
+when CpFloat is float:
+  type TVector* = TVector2d
+else:
+  type TVector* = object
+    x*,y*: cpFloat
+const TVectorIsTVector2d* = TVector is TVector2d
+
 {.pragma: pf, pure, final.}
 type 
   Bool32* = cint  #replace one day with cint-compatible bool
   CpDataPointer* = pointer
-  TVector* {.final, pure.} = tuple
-    x*, y*: CpFloat
   TTimestamp* = cuint
   TBodyVelocityFunc* = proc(body: PBody, gravity: TVector,
                             damping: CpFloat; dt: CpFloat){.cdecl.}
@@ -595,38 +602,43 @@ proc toAngle*(v: TVector): CpFloat {.inline.} =
 #/	Returns a string representation of v. Intended mostly for debugging purposes and not production use.
 #/	@attention The string points to a static local and is reset every time the function is called.
 #/	If you want to print more than one vector you will have to split up your printing onto separate lines.
-proc `$`*(v: TVector): cstring {.cdecl, importc: "cpvstr", dynlib: Lib.}
+#proc `$`*(v: TVector): cstring {.cdecl, importc: "cpvstr", dynlib: Lib.}
 
 
 #/ Check if two vectors are equal. (Be careful when comparing floating point numbers!)
-proc `==`*(v1, v2: TVector): bool {.inline.} =
-  result = v1.x == v2.x and v1.y == v2.y
+#proc `==`*(v1, v2: TVector): bool {.inline.} =
+#  result = v1.x == v2.x and v1.y == v2.y
 
-#/ Add two vectors
-proc `+`*(v1, v2: TVector): TVector {.inline.} =
-  result = newVector(v1.x + v2.x, v1.y + v2.y)
-proc `+=`*(v1: var TVector; v2: TVector) =
-  v1.x = v1.x + v2.x
-  v1.y = v1.y + v2.y
+when not TVectorIsTVector2d:
 
-#/ Subtract two vectors.
-proc `-`*(v1, v2: TVector): TVector {.inline.} =
-  result = newVector(v1.x - v2.x, v1.y - v2.y)
-proc `-=`*(v1: var TVector; v2: TVector) =
-  v1.x = v1.x - v2.x
-  v1.y = v1.y - v2.y
+  #/ Add two vectors
+  proc `+`*(v1, v2: TVector): TVector {.inline.} =
+    result = newVector(v1.x + v2.x, v1.y + v2.y)
+  proc `+=`*(v1: var TVector; v2: TVector) =
+    v1.x = v1.x + v2.x
+    v1.y = v1.y + v2.y
 
-#/ Negate a vector.
-proc `-`*(v: TVector): TVector {.inline.} = 
-  result = newVector(- v.x, - v.y)
+  #/ Subtract two vectors.
+  proc `-`*(v1, v2: TVector): TVector {.inline.} =
+    result = newVector(v1.x - v2.x, v1.y - v2.y)
+  proc `-=`*(v1: var TVector; v2: TVector) =
+    v1.x = v1.x - v2.x
+    v1.y = v1.y - v2.y
 
-#/ Scalar multiplication.
-proc `*`*(v: TVector, s: CpFloat): TVector {.inline.} =
-  result.x = v.x * s
-  result.y = v.y * s
-proc `*=`*(v: var TVector; s: CpFloat) =
-  v.x = v.x * s
-  v.y = v.y * s
+  #/ Negate a vector.
+  proc `-`*(v: TVector): TVector {.inline.} = 
+    result = newVector(- v.x, - v.y)
+
+  #/ Scalar multiplication.
+  proc `*`*(v: TVector, s: CpFloat): TVector {.inline.} =
+    result.x = v.x * s
+    result.y = v.y * s
+  proc `*=`*(v: var TVector; s: CpFloat) =
+    v.x = v.x * s
+    v.y = v.y * s
+  proc normalize*(v: var TVector) {.inline.} = 
+    #/ Normalizes vector v
+    result *= (1.0 / result.len).CPfloat
 
 #/ 2D vector cross product analog.
 #/ The cross product of 2D vectors results in a 3D vector with only a z component.
@@ -659,15 +671,17 @@ proc lenSq*(v: TVector): CpFloat {.inline.} =
 #/ Linearly interpolate between v1 and v2.
 proc lerp*(v1, v2: TVector; t: CpFloat): TVector {.inline.} = 
   result = (v1 * (1.0 - t)) + (v2 * t)
-#/ Returns a normalized copy of v.
-proc normalize*(v: TVector): TVector {.inline.} = 
-  result = v * (1.0 / v.len)
+
 #/ Returns a normalized copy of v or cpvzero if v was already cpvzero. Protects against divide by zero errors.
 proc normalizeSafe*(v: TVector): TVector {.inline.} = 
-  result = if v.x == 0.0 and v.y == 0.0: VectorZero else: v.normalize
+  if v.x == 0.0 and v.y == 0.0: 
+    result = VectorZero 
+  else:
+    result = v
+    result.normalize
 #/ Clamp v to length len.
 proc clamp*(v: TVector; len: CpFloat): TVector {.inline.} = 
-  result = if v.dot(v) > len * len: v.normalize * len else: v
+  result = if v.dot(v) > len * len: v.normalizeSafe * len else: v
 #/ Linearly interpolate between v1 towards v2 by distance d.
 proc lerpconst*(v1, v2: TVector; d: CpFloat): TVector {.inline.} = 
   result = v1 + clamp(v2 - v1, d)             #vadd(v1 + vclamp(vsub(v2, v1), d))
