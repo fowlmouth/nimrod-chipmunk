@@ -83,7 +83,7 @@ type
     contacts*: PContact
     stamp*: TTimestamp
     handler*: PCollisionHandler
-    swappedColl*: bool32
+    swappedColl*: Bool32
     state*: TArbiterState
   PCollisionHandler* = ptr TCollisionHandler
   TCollisionHandler*{.pf.} = object 
@@ -295,7 +295,7 @@ type
     CP_CIRCLE_SHAPE, CP_SEGMENT_SHAPE, CP_POLY_SHAPE, CP_NUM_SHAPES
   TShapeCacheDataImpl* = proc (shape: PShape; p: TVector; rot: TVector): TBB{.cdecl.}
   TShapeDestroyImpl* = proc (shape: PShape){.cdecl.}
-  TShapePointQueryImpl* = proc (shape: PShape; p: TVector): bool32 {.cdecl.}
+  TShapePointQueryImpl* = proc (shape: PShape; p: TVector): Bool32 {.cdecl.}
   TShapeSegmentQueryImpl* = proc (shape: PShape; a: TVector; b: TVector; 
                                   info: PSegmentQueryInfo){.cdecl.}
   PShapeClass* = ptr TShapeClass
@@ -1029,7 +1029,7 @@ defGetter(PShape, TBB, bb, BB)
 #defShapeProp(Bool32, sensor, Sensor, true)
 proc setSensor*(obj: PShape, value: bool) {.cdecl.} =
   if obj.body != nil: obj.body.activate()
-  obj.sensor = value.bool32
+  obj.sensor = value.Bool32
 proc getSensor*(obj: PShape): bool {.cdecl.} = return obj.sensor.bool
 
 defShapeProp(CpFloat, e, Elasticity, false)
