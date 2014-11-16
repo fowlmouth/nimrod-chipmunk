@@ -1342,7 +1342,7 @@ proc getImpulse*(constraint: PConstraint): CpFloat {.inline.} =
 # 	((struct *)constraint)->member = value; \
 # }
 template constraintCheckCast(constraint: PConstraint, ctype: expr): stmt {.immediate.} =
-  assert(constraint.klass == `ctype getClass`(), "Constraint is the wrong class")
+  assert(constraint.klass == `ctype GetClass`(), "Constraint is the wrong class")
 template defCGetter(ctype: expr, memberType: typedesc, member: expr, name: expr): stmt {.immediate.} = 
   proc `get ctype name`*(constraint: PConstraint): memberType {.cdecl.} =
     constraintCheckCast(constraint, ctype)
@@ -1393,7 +1393,7 @@ defCProp(SlideJoint, TVector, anchr2, Anchr2)
 defCProp(SlideJoint, CpFloat, min, Min)
 defCProp(SlideJoint, CpFloat, max, Max)
 
-proc pivotJointGetClass*(): PConstraintClass {.
+proc PivotJointGetClass*(): PConstraintClass {.
   cdecl, importc: "cpPivotJointGetClass", dynlib: Lib.}
 
 #/ Allocate a pivot joint
