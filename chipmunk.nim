@@ -117,7 +117,7 @@ type
   #/ Collision begin event function callback type.
   #/ Returning false from a begin callback causes the collision to be ignored until
   #/ the the separate callback is called when the objects stop colliding.
-  TCollisionBeginFunc* = proc (arb: PArbiter; space: PSpace; data: pointer): Bool{.
+  TCollisionBeginFunc* = proc (arb: PArbiter; space: PSpace; data: pointer): bool{.
       cdecl.}
   #/ Collision pre-solve event function callback type.
   #/ Returning false from a pre-step callback causes the collision to be ignored until the next step.
@@ -436,7 +436,7 @@ defGetter(PSpace, CpFloat, currDt, CurrentTimeStep)
 
 
 #/ returns true from inside a callback and objects cannot be added/removed.
-proc isLocked*(space: PSpace): Bool{.inline.} = 
+proc isLocked*(space: PSpace): bool{.inline.} = 
   result = space.locked.bool
 
 #/ Set a default collision handler for this space.
@@ -488,14 +488,14 @@ proc removeBody*(space: PSpace; body: PBody){.
 proc RemoveConstraint*(space: PSpace; constraint: PConstraint){.
   cdecl, importc: "cpSpaceRemoveConstraint", dynlib: Lib.}
 #/ Test if a collision shape has been added to the space.
-proc containsShape*(space: PSpace; shape: PShape): Bool{.
+proc containsShape*(space: PSpace; shape: PShape): bool{.
   cdecl, importc: "cpSpaceContainsShape", dynlib: Lib.}
 #/ Test if a rigid body has been added to the space.
-proc containsBody*(space: PSpace; body: PBody): Bool{.
+proc containsBody*(space: PSpace; body: PBody): bool{.
   cdecl, importc: "cpSpaceContainsBody", dynlib: Lib.}
 #/ Test if a constraint has been added to the space.
 
-proc containsConstraint*(space: PSpace; constraint: PConstraint): Bool{.
+proc containsConstraint*(space: PSpace; constraint: PConstraint): bool{.
   cdecl, importc: "cpSpaceContainsConstraint", dynlib: Lib.}
 #/ Schedule a post-step callback to be called when cpSpaceStep() finishes.
 #/ @c obj is used a key, you can only register one callback per unique value for @c obj
@@ -531,7 +531,7 @@ proc BBQuery*(space: PSpace; bb: TBB; layers: TLayers; group: TGroup;
   cdecl, importc: "cpSpaceBBQuery", dynlib: Lib.}
 
 #/ Query a space for any shapes overlapping the given shape and call @c func for each shape found.
-proc shapeQuery*(space: PSpace; shape: PShape; func: TSpaceShapeQueryFunc; data: pointer): Bool {.
+proc shapeQuery*(space: PSpace; shape: PShape; func: TSpaceShapeQueryFunc; data: pointer): bool {.
   cdecl, importc: "cpSpaceShapeQuery", dynlib: Lib.}
 #/ Call cpBodyActivate() for any shape that is overlaps the given shape.
 proc activateShapesTouchingShape*(space: PSpace; shape: PShape){.
@@ -692,7 +692,7 @@ proc dist*(v1, v2: TVector): CpFloat {.inline.} =
 proc distsq*(v1, v2: TVector): CpFloat {.inline.} = 
   result = (v1 - v2).lenSq  #vlengthsq(vsub(v1, v2))
 #/ Returns true if the distance between v1 and v2 is less than dist.
-proc near*(v1, v2: TVector; dist: CpFloat): Bool{.inline.} = 
+proc near*(v1, v2: TVector; dist: CpFloat): bool{.inline.} = 
   result = v1.distSq(v2) < dist * dist
 
 
@@ -724,13 +724,13 @@ proc Sleep*(body: PBody){.importc: "cpBodySleep", dynlib: Lib.}
 proc SleepWithGroup*(body: PBody; group: PBody){.
     importc: "cpBodySleepWithGroup", dynlib: Lib.}
 #/ Returns true if the body is sleeping.
-proc isSleeping*(body: PBody): Bool {.inline.} = 
+proc isSleeping*(body: PBody): bool {.inline.} = 
   return body.node.root != nil
 #/ Returns true if the body is static.
 proc isStatic*(body: PBody): bool {.inline.} = 
   return body.node.idleTime == CpInfinity
 #/ Returns true if the body has not been added to a space.
-proc isRogue*(body: PBody): Bool {.inline.} = 
+proc isRogue*(body: PBody): bool {.inline.} = 
   return body.space == nil
 
 # #define CP_DefineBodyStructGetter(type, member, name) \
