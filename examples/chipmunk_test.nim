@@ -43,7 +43,13 @@ borders = @[
 var sfBorders = newVertexArray(PrimitiveType.LinesStrip, 4)
 for i in 0..3:
   var shape = space.addStaticShape(
-    newSegmentShape(space.getStaticBody(), borders[i], borders[(i+1) mod 4], 5.0))
+    newSegmentShape(
+        space.getStaticBody(), 
+        borders[i], 
+        borders[(i+1) mod 4], 
+        1.0
+      )
+    )
   sfBorders[i].position = borders[i].cp2sfml
   shape.setLayers(ClBorder)
   shape.setCollisionType(CtBorder)
@@ -128,10 +134,11 @@ while window.open():
     #o.body.resetForces()
     if o.rectangleSprite == nil:
         o.circleSprite.position = o.body.getPos.vectorToVec2f
+        o.circleSprite.rotation = o.body.getAngle() * 180 / math.PI
         window.draw o.circleSprite
     else:
         o.rectangleSprite.position = o.body.getPos.vectorToVec2f
-        o.rectangleSprite.rotation = o.body.getAngle()
+        o.rectangleSprite.rotation = o.body.getAngle() * 180 / math.PI
         window.draw o.rectangleSprite
   window.draw text
   window.draw text2
