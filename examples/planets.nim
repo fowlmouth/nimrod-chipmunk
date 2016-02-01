@@ -1,5 +1,5 @@
 
-import chipmunk, csfml, csfml_colors, math, debugDraw
+import chipmunk, csfml, math, debugDraw
 
 const
   gravityStrength = 50.CpFloat
