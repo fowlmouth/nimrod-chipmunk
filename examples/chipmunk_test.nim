@@ -1,16 +1,23 @@
 import 
-  chipmunk, csfml, math
+  chipmunk, 
+  csfml, 
+  math
+
 const
   Width = 800
   Height= 600
+
 type 
   GameObjPtr = ref object
     circleSprite: csfml.CircleShape
     rectangleSprite: csfml.RectangleShape
     body: chipmunk.BodyPtr
     shape: chipmunk.ShapePtr
+
 var 
-  window = newRenderWindow(videoMode(Width, Height, 32), "Chipmunk Test", WindowStyle.Default)
+  window = newRenderWindow(
+    videoMode(Width, Height, 32), "Chipmunk Test", WindowStyle.Default
+  )
   space = newSpace()
   gameobjects: seq[GameObjPtr] = @[]
 
@@ -59,6 +66,7 @@ for i in 0..3:
 proc vectorToVec2f(a: Vector): Vector2f =
   result.x = a.x
   result.y = a.y
+
 proc floor(a: Vector): Vector2f =
   result.x = a.x.floor
   result.y = a.y.floor
@@ -71,32 +79,36 @@ proc newBall(mass = 10.0, radius = 10.0): GameObjPtr =
   result.circleSprite = newCircleShape()
   result.circleSprite.radius = radius
   result.circleSprite.origin = Vector2f(x: radius, y: radius)
-  result.body = space.addBody(newBody(mass, momentForCircle(mass, 0.0, radius, VectorZero)))
+  result.body = space.addBody(
+    newBody(mass, momentForCircle(mass, 0.0, radius, VectorZero))
+  )
   result.body.p = pos
-  result.shape = space.addShape(newCircleShape(result.body, radius, VectorZero))
+  result.shape = space.addShape(
+    newCircleShape(result.body, radius, VectorZero)
+  )
   result.shape.setLayers(ClBall)
   result.shape.setCollisionType(CtBall)
   echo($pos, $result.body.getPos(), $result.body.getMass()) #not being set for some reason .. >:\
 
-proc newBox(mass = 10.0, width = 10.0, height = 10.0): GameObjPtr =
-  let pos = newVector(30.0, 10.0)
+proc newBox(mass = 10.0, width = 10.0, height = 10.0,
+            position = newVector(30.0, 10.0)): GameObjPtr =
   new(result)
   result.circleSprite = nil
   result.rectangleSprite = newRectangleShape()
   result.rectangleSprite.size = Vector2f(x: width, y: height)
   result.rectangleSprite.origin = Vector2f(x: width/2, y: height/2)
   result.body = space.addBody(newBody(mass, MomentForBox(mass, width, height)))
-  result.body.p = pos
+  result.body.p = position
   result.shape = space.addShape(newBoxShape(result.body, width, height))
   result.shape.setLayers(ClBall)
   result.shape.setCollisionType(CtBall)
 
-
-gameobjects.add(newBall(50.0, 30.0))
-gameobjects.add(newBall(50.0, 30.0))
-gameobjects.add(newBall(50.0, 30.0))
-gameobjects.add(newBall(50.0, 30.0))
+for i in 0..20:
+    gameobjects.add(newBall(50.0, 30.0))
 gameobjects.add(newBox(50.0, 30.0, 30.0))
+gameobjects.add(newBox(50.0, 30.0, 30.0, newVector(400.0, 50)))
+gameobjects.add(newBox(50.0, 30.0, 30.0, newVector(400.0, 90)))
+gameobjects.add(newBox(50.0, 30.0, 30.0, newVector(400.0, 130)))
 var ball = newBall(10.0, 15.0)
 ball.rectangleSprite = nil
 ball.circleSprite.fillColor = Blue
@@ -127,18 +139,20 @@ while window.open():
         echo("oldPos = ", repr(ball.body.getPos()))
       elif event.key.code == KeyCode.O:
         ball.body.setPos(oldPos)
+      elif event.key.code == KeyCode.Escape:
+        window.close()
+        break
       
   space.step(1.0/60.0)
   window.clear(Black)
   for o in gameobjects: 
-    #o.body.resetForces()
     if o.rectangleSprite == nil:
         o.circleSprite.position = o.body.getPos.vectorToVec2f
-        o.circleSprite.rotation = o.body.getAngle() * 180 / math.PI
+        o.circleSprite.rotation = o.body.getAngle().radToDeg()
         window.draw o.circleSprite
     else:
         o.rectangleSprite.position = o.body.getPos.vectorToVec2f
-        o.rectangleSprite.rotation = o.body.getAngle() * 180 / math.PI
+        o.rectangleSprite.rotation = o.body.getAngle().radToDeg()
         window.draw o.rectangleSprite
   window.draw text
   window.draw text2
