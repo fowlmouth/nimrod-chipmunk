@@ -22,20 +22,10 @@ template WINDOW(a: pointer): RenderWindow = cast[RenderWindow](a)
 template TOSPRITE*(a: chipmunk.ShapePtr, to: typedesc): expr =
   cast[to](cast[ShapeDataPtr](a.data)[1])
 
-var
-    gcdata: seq[csfml.CircleShape] = newSeq[csfml.CircleShape]()
-    gvdata: seq[csfml.VertexArray] = newSeq[csfml.VertexArray]()
 proc drawShape(shape: chipmunk.ShapePtr, winda: pointer) {.cdecl.} =
   case shape.klass.kind
   of CP_CIRCLE_SHAPE:
-#    for i in gcdata:
-#        let body = shape.getBody()
-#        i.position = body.getPos.floor()
-#        WINDOW(winda).draw i
-    let
-#      circ = TOSPRITE(shape, csfml.CircleShape)
-      body = shape.getBody()
-    TOSPRITE(shape, csfml.CircleShape).position = body.getPos.floor()
+    TOSPRITE(shape, csfml.CircleShape).position = shape.getBody().getPos.floor()
     WINDOW(winda).draw TOSPRITE(shape, csfml.CircleShape)
   of CP_SEGMENT_SHAPE:
     WINDOW(winda).draw TOSPRITE(shape, csfml.VertexArray)
@@ -60,12 +50,10 @@ proc initializeShape(shape: chipmunk.ShapePtr; userData: pointer = nil) {.cdecl.
   # Add the shape to the to the data[1] field
   case shape.klass.kind
   of CP_CIRCLE_SHAPE:
-    gcdata.add(csfml.newCircleShape(shape.getCircleRadius(), 30))
-    data[1] = gcdata[gcdata.high]
+    data[1] = csfml.newCircleShape(shape.getCircleRadius(), 30)
     let radius = shape.getCircleRadius()
     cast[csfml.CircleShape](data[1]).origin = Vector2f(x:radius, y:radius)
     cast[csfml.CircleShape](data[1]).fillColor = colors[CP_CIRCLE_SHAPE]
-    echo "RAD: ", cast[csfml.CircleShape](data[1]).radius
   of CP_SEGMENT_SHAPE:
     ## VertexArray == array[x, ptr Vertex]
     data[1] = csfml.newVertexArray(PrimitiveType.Lines, 2)
