@@ -69,7 +69,7 @@ debugDrawInit(space)
 var
   running = true
   event: Event
-  c = newClock()
+  clock = newClock()
 while running:
   while window.pollEvent(event):
     if event.kind == EventType.Closed:
@@ -80,7 +80,7 @@ while running:
         running = false
         break
         
-  let dt = c.restart.asMilliseconds / 50000
+  let dt = clock.restart.asSeconds / 100
   
   space.step dt
   window.clear Black
