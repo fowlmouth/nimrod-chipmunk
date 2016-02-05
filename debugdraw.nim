@@ -22,23 +22,21 @@ template WINDOW(a: pointer): RenderWindow = cast[RenderWindow](a)
 template TOSPRITE*(a: chipmunk.ShapePtr, to: typedesc): expr =
   cast[to](cast[ShapeDataPtr](a.data)[1])
 
-proc getUserData*(shape: chipmunk.ShapePtr): pointer {.inline.} = 
-  return cast[ShapeDataPtr](shape.data)[0]
-proc setUserData2*(shape: chipmunk.ShapePtr; data: pointer) {.inline.} =
-#  shape.data = cast[ShapeDataPtr](alloc0(sizeof(ShapeData)))
-#  cast[ShapeDataPtr](shape.data)[0] = data
-  let tmp = cast[ShapeDataPtr](data)
-  echo cast[VertexArray](tmp[1])[0].position
-  shape.data = data
- 
+var
+    gcdata: seq[csfml.CircleShape] = newSeq[csfml.CircleShape]()
+    gvdata: seq[csfml.VertexArray] = newSeq[csfml.VertexArray]()
 proc drawShape(shape: chipmunk.ShapePtr, winda: pointer) {.cdecl.} =
   case shape.klass.kind
   of CP_CIRCLE_SHAPE:
+#    for i in gcdata:
+#        let body = shape.getBody()
+#        i.position = body.getPos.floor()
+#        WINDOW(winda).draw i
     let
-      circ = TOSPRITE(shape, csfml.CircleShape)
+#      circ = TOSPRITE(shape, csfml.CircleShape)
       body = shape.getBody()
-    circ.position = body.getPos.floor()
-    WINDOW(winda).draw circ
+    TOSPRITE(shape, csfml.CircleShape).position = body.getPos.floor()
+    WINDOW(winda).draw TOSPRITE(shape, csfml.CircleShape)
   of CP_SEGMENT_SHAPE:
     WINDOW(winda).draw TOSPRITE(shape, csfml.VertexArray)
   of CP_POLY_SHAPE:
@@ -54,19 +52,20 @@ proc drawShape(shape: chipmunk.ShapePtr, winda: pointer) {.cdecl.} =
 proc initializeShape(shape: chipmunk.ShapePtr; userData: pointer = nil) {.cdecl.} =
   if not shape.data.isNil:
     return
-  
-  var data = cast[ShapeDataPtr](alloc0(sizeof(ShapeData)))
-  data[0] = nil
+  # Initialize the chipmunk shape data attribute
   shape.data = cast[ShapeDataPtr](alloc0(sizeof(ShapeData)))
-  
+  # Create a data variable on the heap
+  var data = cast[ShapeDataPtr](alloc0(sizeof(ShapeData)))
+  data[0] = userData
+  # Add the shape to the to the data[1] field
   case shape.klass.kind
   of CP_CIRCLE_SHAPE:
-    var circ = csfml.newCircleShape(shape.getCircleRadius(), 30)
+    gcdata.add(csfml.newCircleShape(shape.getCircleRadius(), 30))
+    data[1] = gcdata[gcdata.high]
     let radius = shape.getCircleRadius()
-    circ.origin = Vector2f(x:radius, y:radius)
-    circ.fillColor = colors[CP_CIRCLE_SHAPE]
-#    data[1] = circ
-    cast[ShapeDataPtr](shape.data)[1] = circ
+    cast[csfml.CircleShape](data[1]).origin = Vector2f(x:radius, y:radius)
+    cast[csfml.CircleShape](data[1]).fillColor = colors[CP_CIRCLE_SHAPE]
+    echo "RAD: ", cast[csfml.CircleShape](data[1]).radius
   of CP_SEGMENT_SHAPE:
     ## VertexArray == array[x, ptr Vertex]
     data[1] = csfml.newVertexArray(PrimitiveType.Lines, 2)
@@ -74,25 +73,18 @@ proc initializeShape(shape: chipmunk.ShapePtr; userData: pointer = nil) {.cdecl.
     cast[VertexArray](data[1])[1].position = shape.getSegmentB.cp2sfml()
     cast[VertexArray](data[1])[0].color = colors[CP_SEGMENT_SHAPE]
     cast[VertexArray](data[1])[1].color = colors[CP_SEGMENT_SHAPE]
-#    cast[ShapeDataPtr](shape.data)[1] = csfml.newVertexArray(PrimitiveType.Lines, 2)
-#    cast[VertexArray](cast[ShapeDataPtr](shape.data)[1])[0].position = shape.getSegmentA.cp2sfml()
-#    cast[VertexArray](cast[ShapeDataPtr](shape.data)[1])[1].position = shape.getSegmentB.cp2sfml()
-#    cast[VertexArray](cast[ShapeDataPtr](shape.data)[1])[0].color = colors[CP_SEGMENT_SHAPE]
-#    cast[VertexArray](cast[ShapeDataPtr](shape.data)[1])[1].color = colors[CP_SEGMENT_SHAPE]
   of CP_POLY_SHAPE:
     var poly = csfml.newConvexShape(shape.getNumVerts())
     for i in 0.. <shape.getNumVerts():
       poly.setPoint i, shape.getVert(i).cp2sfml()
     poly.fillColor = colors[CP_POLY_SHAPE]
-#    data[1] = poly
+    data[1] = poly
     cast[ShapeDataPtr](shape.data)[1] = poly
   else: 
     echo "Unknown shape type! ", repr(shape.klass.kind)
     return
-
+  # Write the data variable to the shape's data attribute
   shape.data = data
-  echo "KONEC:   ", cast[VertexArray](cast[ShapeDataPtr](shape.data)[1]).getVertex(0).position, "  ", 
-                    cast[VertexArray](cast[ShapeDataPtr](shape.data)[1]).getVertex(1).position
 
 proc draw*(window: RenderWindow; space: SpacePtr) {.inline.} =
   space.eachShape(drawShape, cast[pointer](window))

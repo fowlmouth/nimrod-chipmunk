@@ -42,15 +42,13 @@ proc addPlanet() =
     body = space.addBody(newBody(mass, momentForCircle(mass, 0.0, radius, VectorZero)))
     shape = debugDraw.addShape(space, body.newCircleShape(radius, VectorZero))
     gravity = debugDraw.addShape(space, body.newCircleShape(gravityRadius, VectorZero))
-    gravityCirc = TOSPRITE(gravity, csfml.CircleShape)
   body.setPos randomPoint(screenArea)
   shape.setCollisionType CTplanet
   gravity.setSensor true
   gravity.setCollisionType CTgravity
-  gravityCirc.fillColor = Transparent
-  gravityCirc.outlineColor = Blue
-  gravityCirc.outlineThickness = 2.0
-
+  TOSPRITE(gravity, csfml.CircleShape).fillColor = Transparent
+  TOSPRITE(gravity, csfml.CircleShape).outlineColor = Blue
+  TOSPRITE(gravity, csfml.CircleShape).outlineThickness = 2.0
 
 window.frameRateLimit = 60
 space.setIterations 20
@@ -63,8 +61,8 @@ block:
     var shape = space.addStaticShape(space.getStaticBody.newSegmentShape(
       borders[i], borders[(i + 1) mod 4], 16.0)
     )
-#  for i in 1..30:
-#    addPlanet()
+  for i in 1..30:
+    addPlanet()
 
 debugDrawInit(space)
 
@@ -82,7 +80,7 @@ while running:
         running = false
         break
         
-  let dt = c.restart.asMilliseconds / 1000
+  let dt = c.restart.asMilliseconds / 50000
   
   space.step dt
   window.clear Black
