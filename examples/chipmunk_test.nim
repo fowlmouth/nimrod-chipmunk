@@ -105,10 +105,8 @@ proc newBox(mass = 10.0, width = 10.0, height = 10.0,
 
 for i in 0..20:
     gameobjects.add(newBall(50.0, 30.0))
-gameobjects.add(newBox(50.0, 30.0, 30.0))
-gameobjects.add(newBox(50.0, 30.0, 30.0, newVector(400.0, 50)))
-gameobjects.add(newBox(50.0, 30.0, 30.0, newVector(400.0, 90)))
-gameobjects.add(newBox(50.0, 30.0, 30.0, newVector(400.0, 130)))
+for i in 0..10:
+    gameobjects.add(newBox(50.0, 30.0, 30.0, newVector(400.0, 50)))
 var ball = newBall(10.0, 15.0)
 ball.rectangleSprite = nil
 ball.circleSprite.fillColor = Blue

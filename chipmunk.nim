@@ -545,11 +545,10 @@ proc eachBody*(space: SpacePtr; fun: SpaceBodyIteratorFunc; data: pointer){.
 
 #/ Call @c func for each shape in the space.
 proc eachShape*(space: SpacePtr; fun: SpaceShapeIteratorFunc; 
-                     data: pointer){.
-  cdecl, importc: "cpSpaceEachShape", dynlib: Lib.}
+                data: pointer){.cdecl, importc: "cpSpaceEachShape", dynlib: Lib.}
 #/ Call @c func for each shape in the space.
 proc eachConstraint*(space: SpacePtr; fun: SpaceConstraintIteratorFunc; 
-                          data: pointer){.
+                     data: pointer){.
   cdecl, importc: "cpSpaceEachConstraint", dynlib: Lib.}
 #/ Update the collision detection info for the static shapes in the space.
 proc reindexStatic*(space: SpacePtr){.
@@ -840,7 +839,7 @@ proc kineticEnergy*(body: BodyPtr): CpFloat =
 
 #/ Call @c func once for each shape attached to @c body and added to the space.
 proc eachShape*(body: BodyPtr; fun: BodyShapeIteratorFunc; 
-                      data: pointer){.
+                data: pointer){.
   cdecl, importc: "cpBodyEachShape", dynlib: Lib.}
 #/ Call @c func once for each constraint attached to @c body and added to the space.
 proc eachConstraint*(body: BodyPtr; fun: BodyConstraintIteratorFunc; 

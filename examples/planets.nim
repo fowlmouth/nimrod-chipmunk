@@ -61,13 +61,14 @@ block:
                  vector(ScreenW, ScreenH), vector(ScreenW, 0)]
   for i in 0..3:
     var shape = space.addStaticShape(space.getStaticBody.newSegmentShape(
-      borders[i], borders[(i + 1) mod 4], 16.0))
-  for i in 1..30:
-    addPlanet()
+      borders[i], borders[(i + 1) mod 4], 16.0)
+    )
+#  for i in 1..30:
+#    addPlanet()
 
 debugDrawInit(space)
 
-var 
+var
   running = true
   event: Event
   c = newClock()
@@ -76,6 +77,11 @@ while running:
     if event.kind == EventType.Closed:
       running = false
       break
+    elif event.kind == EventType.KeyPressed:
+      if event.key.code == KeyCode.Escape:
+        running = false
+        break
+        
   let dt = c.restart.asMilliseconds / 1000
   
   space.step dt
@@ -83,5 +89,5 @@ while running:
   window.draw space
   window.display()
 
-
+space.destroy()
 
