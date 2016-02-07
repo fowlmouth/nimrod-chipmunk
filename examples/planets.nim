@@ -22,7 +22,8 @@ var
 
 randomize()
 
-proc gravityApplicator(arb: ArbiterPtr; space: SpacePtr; data: pointer): bool {.cdecl.} =
+proc gravityApplicator(arb: ArbiterPtr; space: 
+                       SpacePtr; data: pointer): bool {.cdecl.} =
   var 
     dist = arb.body_a.getPos() - arb.body_b.getPos()
   dist.normalize()
@@ -42,16 +43,17 @@ proc addPlanet() =
     body = space.addBody(newBody(mass, momentForCircle(mass, 0.0, radius, VectorZero)))
     shape = debugDraw.addShape(space, body.newCircleShape(radius, VectorZero))
     gravity = debugDraw.addShape(space, body.newCircleShape(gravityRadius, VectorZero))
+    gravityCircle = TOSPRITE(gravity, csfml.CircleShape)
   body.setPos randomPoint(screenArea)
   shape.setCollisionType CTplanet
   gravity.setSensor true
   gravity.setCollisionType CTgravity
-  TOSPRITE(gravity, csfml.CircleShape).fillColor = Transparent
-  TOSPRITE(gravity, csfml.CircleShape).outlineColor = Blue
-  TOSPRITE(gravity, csfml.CircleShape).outlineThickness = 2.0
+  gravityCircle.fillColor = Transparent
+  gravityCircle.outlineColor = Blue
+  gravityCircle.outlineThickness = 2.0
 
 window.frameRateLimit = 60
-space.setIterations 20
+space.setIterations(20)
 space.addCollisionHandler(CTgravity, CTplanet, preSolve = gravityApplicator)
 
 block:

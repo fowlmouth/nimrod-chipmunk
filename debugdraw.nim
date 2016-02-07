@@ -11,48 +11,53 @@ proc floor(vec: Vector): Vector2f =
   result.x = vec.x.floor
   result.y = vec.y.floor
 
-template WINDOW(shape: pointer): RenderWindow = cast[RenderWindow](shape)
+template WINDOW(shape: pointer): RenderWindow = 
+  cast[RenderWindow](shape)
+
 template TOSPRITE*(shape: chipmunk.ShapePtr, to: typedesc): expr =
   cast[to](shape.data)
 
 proc drawShape(shape: chipmunk.ShapePtr, winda: pointer) {.cdecl.} =
   case shape.klass.kind
   of CP_CIRCLE_SHAPE:
-    TOSPRITE(shape, csfml.CircleShape).position = shape.getBody().getPos.floor()
-    WINDOW(winda).draw TOSPRITE(shape, csfml.CircleShape)
+    let circle = TOSPRITE(shape, csfml.CircleShape)
+    circle.position = shape.getBody().getPos.floor()
+    WINDOW(winda).draw(circle)
   of CP_SEGMENT_SHAPE:
     WINDOW(winda).draw TOSPRITE(shape, csfml.VertexArray)
   of CP_POLY_SHAPE:
-    TOSPRITE(shape, csfml.ConvexShape).position = shape.getBody().getPos.floor()
-    TOSPRITE(shape, csfml.ConvexShape).rotation = math.radToDeg(shape.getBody().getAngle())
-    WINDOW(winda).draw TOSPRITE(shape, csfml.ConvexShape)
+    let polygon = TOSPRITE(shape, csfml.ConvexShape)
+    polygon.position = shape.getBody().getPos.floor()
+    polygon.rotation = math.radToDeg(shape.getBody().getAngle())
+    WINDOW(winda).draw polygon
   else:
     discard
 
 proc initializeShape(shape: chipmunk.ShapePtr; userData: pointer = nil) {.cdecl.} =
   if not shape.data.isNil:
     return
-  # Add the shape to the to the data[1] field
   case shape.klass.kind
   of CP_CIRCLE_SHAPE:
     shape.data = csfml.newCircleShape(shape.getCircleRadius(), 30)
-    let radius = shape.getCircleRadius()
-    cast[csfml.CircleShape](shape.data).origin = Vector2f(x:radius, y:radius)
-    cast[csfml.CircleShape](shape.data).fillColor = colors[CP_CIRCLE_SHAPE]
+    let 
+      radius = shape.getCircleRadius()
+      circleData = cast[csfml.CircleShape](shape.data)
+    circleData.origin = Vector2f(x:radius, y:radius)
+    circleData.fillColor = colors[CP_CIRCLE_SHAPE]
   of CP_SEGMENT_SHAPE:
     ## VertexArray == array[x, ptr Vertex]
     shape.data = csfml.newVertexArray(PrimitiveType.Lines, 2)
-    cast[VertexArray](shape.data)[0].position = shape.getSegmentA.cp2sfml()
-    cast[VertexArray](shape.data)[1].position = shape.getSegmentB.cp2sfml()
-    cast[VertexArray](shape.data)[0].color = colors[CP_SEGMENT_SHAPE]
-    cast[VertexArray](shape.data)[1].color = colors[CP_SEGMENT_SHAPE]
+    let vertexData = cast[VertexArray](shape.data)
+    vertexData[0].position = shape.getSegmentA.cp2sfml()
+    vertexData[1].position = shape.getSegmentB.cp2sfml()
+    vertexData[0].color = colors[CP_SEGMENT_SHAPE]
+    vertexData[1].color = colors[CP_SEGMENT_SHAPE]
   of CP_POLY_SHAPE:
-    var poly = csfml.newConvexShape(shape.getNumVerts())
-#    for i in 0.. <shape.getNumVerts():
-#      poly.setPoint i, shape.getVert(i).cp2sfml()
-#    poly.fillColor = colors[CP_POLY_SHAPE]
-#    data[1] = poly
-#    cast[ShapeDataPtr](shape.data)[1] = poly
+    shape.data = csfml.newConvexShape(shape.getNumVerts())
+    let polygonData = cast[ConvexShape](shape.data)
+    for i in 0.. <shape.getNumVerts():
+      polygonData.setPoint(i, shape.getVert(i).cp2sfml())
+    polygonData.fillColor = colors[CP_POLY_SHAPE]
   else: 
     echo "Unknown shape type! ", repr(shape.klass.kind)
     return
@@ -66,7 +71,7 @@ proc debugDrawInit*(space: SpacePtr) =
 proc addShape*(space: SpacePtr; shape: chipmunk.ShapePtr; 
                userData: pointer = nil): chipmunk.ShapePtr {.discardable.} =
   result = chipmunk.addShape(space, shape)
-  initializeShape result, userData
+  initializeShape(result, userData)
 
 proc removeShape*(space: SpacePtr; shape: chipmunk.ShapePtr, deallocData = true) =
   chipmunk.removeShape space, shape

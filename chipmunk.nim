@@ -367,7 +367,7 @@ type
   #/ Space/constraint iterator callback function type.
   SpaceConstraintIteratorFunc* = proc (constraint: ConstraintPtr; 
                                         data: pointer){.cdecl.}
-  #/ Opaque cConstraintPtr struct.
+  #/ Opaque cpConstraint struct.
   ConstraintPtr* = ptr Constraint
   Constraint*{.pf.} = object 
     klass: ConstraintPtrClass #/PRIVATE
@@ -381,7 +381,7 @@ type
     maxBias*: CpFloat    #/ The maximum rate at which joint error is corrected. Defaults to infinity.       
     preSolve*: ConstraintPreSolveFunc  #/ Function called before the solver runs. Animate your joint anchors, update your motor torque, etc.
     postSolve*: ConstraintPostSolveFunc #/ Function called after the solver runs. Use the applied impulse to perform effects like breakable joints.
-    data*: CpDataPointer  # User definable data pointer. Generally this points to your the game object class so you can access it when given a cConstraintPtr reference in a callback.
+    data*: CpDataPointer  # User definable data pointer. Generally this points to your the game object class so you can access it when given a cpConstraint reference in a callback.
   ConstraintPreStepImpl = proc (constraint: ConstraintPtr; dt: CpFloat){.cdecl.}
   ConstraintApplyCachedImpulseImpl = proc (constraint: ConstraintPtr; dt_coef: CpFloat){.cdecl.}
   ConstraintApplyImpulseImpl = proc (constraint: ConstraintPtr){.cdecl.}
@@ -1289,10 +1289,10 @@ type
       relativeAngle: CpFloat): CpFloat {.cdecl.}
 #/ Destroy a constraint.
 proc destroy*(constraint: ConstraintPtr){.
-  cdecl, importc: "cConstraintPtrDestroy", dynlib: Lib.}
+  cdecl, importc: "cpConstraintDestroy", dynlib: Lib.}
 #/ Destroy and free a constraint.111
 proc free*(constraint: ConstraintPtr){.
-  cdecl, importc: "cConstraintPtrFree", dynlib: Lib.}
+  cdecl, importc: "cpConstraintFree", dynlib: Lib.}
 
 #/ @private
 proc activateBodies(constraint: ConstraintPtr) {.inline.} = 
