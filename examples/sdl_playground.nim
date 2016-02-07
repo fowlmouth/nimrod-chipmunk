@@ -21,7 +21,8 @@ const
 var
   mainWindow: sdl2.WindowPtr
   mainRenderer: sdl2.RendererPtr
-  mousePos: Vector2d #tuple[x,y: cint]
+  displayData: sdl2.DisplayMode
+#  mousePos: Vector2d #tuple[x,y: cint]
   mouseJoint: ConstraintPtr
   space = newSpace()
   mouseBody = space.addBody(newBody(1.0, 1.0))
@@ -36,7 +37,7 @@ proc addCircle (
     mass = 0.9;
     radius = 10.0 ) =
   var 
-    body = space.addBody(newBody(mass, momentForCircle(mass, 0.0, radius, VectorZero)))
+    body = space.addBody(newBody(mass, MomentForCircle(mass, 0.0, radius, VectorZero)))
     shape = space.addShape(
       newCircleShape(body, radius, VectorZero))
   body.setPos pos
@@ -62,13 +63,15 @@ proc getFloat(some: JsonNode): float =
 proc getVector(some: JsonNode): Vector2d =
   Vector2d(x: some[0].getFLoat, y: some[1].getFloat)
 
-proc loadBody (item: JsonNode): BodyPtr =
+proc loadBody(item: JsonNode): BodyPtr =
   let mass = item["mass"].getFloat
   case item["shape"].str.normalize
   of "circle":
-    result = newBody(mass, momentForCircle(mass, 0.0, item["radius"].getFloat, VectorZero))
+    result = newBody(mass, MomentForCircle(mass, 0.0, item["radius"].getFloat, VectorZero))
+    result.setAngle(0.0)
   of "box":
     result = newBody(mass, MomentForBox(mass, item["width"].getFloat, item["height"].getFloat))
+    result.setAngle(1.0)
   else:
     discard
   
@@ -79,8 +82,12 @@ proc loadShape(item: JsonNode, body: BodyPtr): ShapePtr =
   case item["shape"].str.normalize
   of "circle":
     result = newCircleShape(body, item["radius"].getFloat, VectorZero)
+    result.setElasticity(0.1)
+    result.setFriction(1.0)
   of "box": 
     result = newBoxShape(body, item["width"].getFloat, item["height"].getFloat)
+    result.setFriction(1.0)
+    result.setElasticity(5.0)
   of "segment":
     let
       a = item["a"].getVector
@@ -97,11 +104,11 @@ proc loadScene(scene: string) =
   
   if scene.existsKey("static"):
     for it in scene["static"]:
-      discard space.addStaticShape(it.loadShape(space.getStaticBody))
+      let newShape = space.addStaticShape(it.loadShape(space.getStaticBody))
   
   if scene.existsKey("dynamic"):
     for it in scene["dynamic"]:
-      discard space.addShape(it.loadShape(space.addBody(it.loadBody)))
+      let newShape = space.addShape(it.loadShape(space.addBody(it.loadBody)))
 
 #[
 block:
@@ -117,20 +124,7 @@ block:
     addCircle(radius = random(3 .. 10).float)
   for i in random(100).times:
     addBox(width = random(5 .. 15).float, height = random(6 .. 12).float)
-]#
-
-proc byteRepr [T](anything: var T): string =
-  result = ""
-  let rawBytes = cast[ptr array[10_000, byte]](anything.addr)
-  var index = 0
-  for name, field in anything.toAny.fields:
-    result.addf("$1: ", name, field.size)
-    for i in 0 .. <field.size:
-      result.add($ rawBytes[index + i])
-      result.add ' '
-    inc index, field.size
-    result.add '\L'
-    
+]#    
 
 #NG.addHandler do(E: PSdlEngine) -> bool:
 #  if E.evt.kind in { MouseButtonDown, MouseButtonUp }:
@@ -191,6 +185,8 @@ proc ProcessInput() =
   # Get keyboard and mouse states, used when you need the input 
   # state at every frame, not just when an event fires
   GetInputStates(keysState, mouseState)
+  # Update the mouseBody position
+  mouseBody.p = mouseState.position
   # Get the input events from the event queue
   events = GetEvents()
   for i in 0..events.high:
@@ -240,7 +236,7 @@ proc drawShape(shape: ShapePtr; data: pointer) {.cdecl.} =
     let 
       r = shape.getCircleRadius
       b = shape.getBody
-      a = b.getAngle
+      a = b.getAngle()
       p2 = Vector2d(x:cos(a), y:sin(a)) * r.float
     # Draw the circle
     mainRenderer.circleRGBA(
@@ -304,6 +300,9 @@ proc drawShape(shape: ShapePtr; data: pointer) {.cdecl.} =
 
 # Initialize SDL
 sdl2.init(INIT_EVERYTHING)
+# Get the display data
+if sdl2.getCurrentDisplayMode(0, displayData) != SdlSuccess:
+  quit "Error while obtaining display data!"
 # Math randomize
 randomize()
 # Create the main window
@@ -330,15 +329,14 @@ loadScene("basic")
 # Main loop
 while running:
   ProcessInput()
-  mouseBody.p = mousePos #vector(mousePos.x.cpfloat, mousePos.y.cpfloat)
-  
-  space.step(1/60)
-  
+  # Set the timestep to match the monitor refresh rate
+  space.step(1/displayData.refresh_rate)
+  # Clear the screen
   mainRenderer.setDrawColor(r=0, g=0, b=0, a=255)
   mainRenderer.clear()
-  
+  # Draw all shapes
   space.eachShape(drawShape, nil)
-  
+  # Display all shapes
   mainRenderer.present()
 
 #Perform cleanup

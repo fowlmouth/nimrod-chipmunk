@@ -5,7 +5,7 @@ import
 
 const
   Width = 800
-  Height= 600
+  Height = 600
 
 type 
   GameObjPtr = ref object
@@ -80,7 +80,7 @@ proc newBall(mass = 10.0, radius = 10.0): GameObjPtr =
   result.circleSprite.radius = radius
   result.circleSprite.origin = Vector2f(x: radius, y: radius)
   result.body = space.addBody(
-    newBody(mass, momentForCircle(mass, 0.0, radius, VectorZero))
+    newBody(mass, MomentForCircle(mass, 0.0, radius, VectorZero))
   )
   result.body.p = pos
   result.shape = space.addShape(

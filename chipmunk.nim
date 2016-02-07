@@ -446,23 +446,23 @@ proc isLocked*(space: SpacePtr): bool{.inline.} =
 #/ that isn't explicitly handled by a specific collision handler.
 #/ You can pass NULL for any function you don't want to implement.
 proc setDefaulCollisionHandler*(space: SpacePtr; begin: CollisionBeginFunc; 
-                                  preSolve: CollisionPreSolveFunc; 
-                                  postSolve: CollisionPostSolveFunc; 
-                                  separate: CollisionSeparateFunc; 
-                                  data: pointer){.
+                                preSolve: CollisionPreSolveFunc; 
+                                postSolve: CollisionPostSolveFunc; 
+                                separate: CollisionSeparateFunc; 
+                                data: pointer){.
   cdecl, importc: "cpSpaceSetDefaulCollisionHandler", dynlib: Lib.}
 #/ Set a collision handler to be used whenever the two shapes with the given collision types collide.
 #/ You can pass NULL for any function you don't want to implement.
 proc addCollisionHandler*(space: SpacePtr; a, b: CollisionType; 
-                           begin: CollisionBeginFunc = nil; 
-                           preSolve: CollisionPreSolveFunc = nil; 
-                           postSolve: CollisionPostSolveFunc = nil; 
-                           separate: CollisionSeparateFunc = nil; 
-                           data: pointer = nil){.
+                          begin: CollisionBeginFunc = nil; 
+                          preSolve: CollisionPreSolveFunc = nil; 
+                          postSolve: CollisionPostSolveFunc = nil; 
+                          separate: CollisionSeparateFunc = nil; 
+                          data: pointer = nil){.
   cdecl, importc: "cpSpaceAddCollisionHandler", dynlib: Lib.}
 #/ Unset a collision handler.
 proc removeCollisionHandler*(space: SpacePtr; a: CollisionType; 
-                                  b: CollisionType){.
+                             b: CollisionType){.
   cdecl, importc: "cpSpaceRemoveCollisionHandler", dynlib: Lib.}
 #/ Add a collision shape to the simulation.
 #/ If the shape is attached to a static body, it will be added as a static shape.
@@ -502,12 +502,12 @@ proc containsConstraint*(space: SpacePtr; constraint: ConstraintPtr): bool{.
 #/ Schedule a post-step callback to be called when cpSpaceStep() finishes.
 #/ @c obj is used a key, you can only register one callback per unique value for @c obj
 proc addPostStepCallback*(space: SpacePtr; fun: PostStepFunc; 
-                               obj: pointer; data: pointer){.
+                          obj: pointer; data: pointer){.
   cdecl, importc: "cpSpaceAddPostStepCallback", dynlib: Lib.}
                                         
 #/ Query the space at a point and call @c func for each shape found.
 proc pointQuery*(space: SpacePtr; point: Vector; layers: Layers; 
-                      group: Group; fun: SpacePointQueryFunc; data: pointer){.
+                 group: Group; fun: SpacePointQueryFunc; data: pointer){.
   cdecl, importc: "cpSpacePointQuery", dynlib: Lib.}
 
 #/ Query the space at a point and return the first shape found. Returns NULL if no shapes were found.
@@ -1124,10 +1124,10 @@ proc getSegmentRadius*(shape: ShapePtr): CpFloat {.
 #/ Calculate the moment of inertia for a circle.
 #/ @c r1 and @c r2 are the inner and outer diameters. A solid circle has an inner diameter of 0.
 when defined(MoreNim):
-  proc momentForCircle*(m, r1, r2: CpFloat; offset: Vector): CpFloat {.cdecl.} =
+  proc MomentForCircle*(m, r1, r2: CpFloat; offset: Vector): CpFloat {.cdecl.} =
     result = m * (0.5 * (r1 * r1 + r2 * r2) + lenSq(offset))
 else:
-  proc momentForCircle*(m, r1, r2: CpFloat; offset: Vector): CpFloat {.
+  proc MomentForCircle*(m, r1, r2: CpFloat; offset: Vector): CpFloat {.
     cdecl, importc: "cpMomentForCircle", dynlib: Lib.}
 
 #/ Calculate area of a hollow circle.
