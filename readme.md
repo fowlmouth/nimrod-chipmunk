@@ -1,9 +1,25 @@
-## Chipmunk
+## Chipmunk2D
 
 [Chipmunk 6.1.*](http://chipmunk-physics.net/ "Chipmunk") bindings for 
-[Nimrod 0.9.0](http://nimrod-code.org "Nimrod")
+[Nim 0.13.0](http://nim-lang.org "Nimrod") or higher.<br>
+Tested with Chipmunk 6.1.5
 
-## Using DebugDraw
+### Installation: ###
+[![nimble](https://raw.githubusercontent.com/yglukhov/nimble-tag/master/nimble.png)](https://github.com/yglukhov/nimble-tag)
+<br>
+Installation can be done using the Nimble package manager from the shell/command line (Nimble has to be installed):
+```sh 
+$ nimble install chipmunk
+```
+
+## Notes on some examples:
+
+Compiling the **examples/planets.nim** example should be done with the following command:<br>
+```$ nim c d:csfmlNoDestructors planets.nim```<br>
+This disables destructors in the Nim-CSFML library, otherwise you will get a lot of segfaults!<br>
+Thanks to BlaXpirit for pointing this out.
+
+## Using DebugDraw:
 
 DebugDraw is a library for easily visualizing your simulation.
 Using it is simple, there is an example in the examples dir :)
