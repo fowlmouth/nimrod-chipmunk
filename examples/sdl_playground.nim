@@ -87,13 +87,15 @@ proc loadShape(item: JsonNode, body: BodyPtr): ShapePtr =
   of "box": 
     result = newBoxShape(body, item["width"].getFloat, item["height"].getFloat)
     result.setFriction(1.0)
-    result.setElasticity(5.0)
+    result.setElasticity(0.5)
   of "segment":
     let
       a = item["a"].getVector
       b = item["b"].getVector
       w = if item.existsKey("width"): item["width"].getFLoat else: 2.0
     result = newSegmentShape(body, a, b, w)
+    result.setFriction(1.0)
+    result.setElasticity(0.0)
   else: 
     result = nil
 
@@ -238,6 +240,7 @@ proc drawShape(shape: ShapePtr; data: pointer) {.cdecl.} =
       b = shape.getBody
       a = b.getAngle()
       p2 = Vector2d(x:cos(a), y:sin(a)) * r.float
+    echo shape.body.p
     # Draw the circle
     mainRenderer.circleRGBA(
       b.p.x.int16,
