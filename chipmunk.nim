@@ -317,7 +317,7 @@ type
     e*: CpFloat            #/ Coefficient of restitution. (elasticity)
     u*: CpFloat            #/ Coefficient of friction.
     surface_v*: Vector    #/ Surface velocity used when solving for friction.
-    data*: pointer        #/ User definable data pointer. Generally this points to your the game object class so you can access it when given a cShapePtr reference in a callback.
+    data*: pointer        #/ User definable data pointer. Generally this points to your the game object class so you can access it when given a cpShape reference in a callback.
     collision_type*: CollisionType #/ Collision type of this shape used when picking collision handlers.
     group*: Group      #/ Group of this shape. Shapes in the same group don't collide.
     layers*: Layers   #/ Layer bitmask for this shape. Shapes only collide if the bitwise and of their layers is non-zero.
@@ -938,7 +938,7 @@ proc getShapes*(arb: ArbiterPtr, a, b: var ShapePtr) {.inline.} =
     b = arb.b
 
 #/ A macro shortcut for defining and retrieving the shapes from an arbiter.
-#define CP_ARBITER_GET_SHAPES(arb, a, b) cShapePtr *a, *b; cArbiterPtrGetShapes(arb, &a, &b);
+#define CP_ARBITER_GET_SHAPES(arb, a, b) cpShape *a, *b; cArbiterPtrGetShapes(arb, &a, &b);
 template getShapes*(arb: ArbiterPtr, name1, name2: expr): stmt {.immediate.} =
   var name1, name2: ShapePtr
   getShapes(arb, name1, name2)
@@ -988,27 +988,27 @@ template defShapeProp(memberType: typedesc, memberName: expr, procName: expr, ac
 
 #/ Destroy a shape.
 proc destroy*(shape: ShapePtr) {.
-  cdecl, importc: "cShapePtrDestroy", dynlib: Lib.}
+  cdecl, importc: "cpShapeDestroy", dynlib: Lib.}
 #/ Destroy and Free a shape.
 proc free*(shape: ShapePtr){.
-  cdecl, importc: "cShapePtrFree", dynlib: Lib.}
+  cdecl, importc: "cpShapeFree", dynlib: Lib.}
 #/ Update, cache and return the bounding box of a shape based on the body it's attached to.
 proc cacheBB*(shape: ShapePtr): BB{.
-  cdecl, importc: "cShapePtrCacheBB", dynlib: Lib.}
+  cdecl, importc: "cpShapeCacheBB", dynlib: Lib.}
 #/ Update, cache and return the bounding box of a shape with an explicit transformation.
 proc update*(shape: ShapePtr; pos: Vector; rot: Vector): BB {.
-  cdecl, importc: "cShapePtrUpdate", dynlib: Lib.}
+  cdecl, importc: "cpShapeUpdate", dynlib: Lib.}
 #/ Test if a point lies within a shape.
 proc pointQuery*(shape: ShapePtr; p: Vector): Bool32 {.
-  cdecl, importc: "cShapePtrPointQuery", dynlib: Lib.}
+  cdecl, importc: "cpShapePointQuery", dynlib: Lib.}
 
 #/ Perform a nearest point query. It finds the closest point on the surface of shape to a specific point.
 #/ The value returned is the distance between the points. A negative distance means the point is inside the shape.
 proc nearestPointQuery*(shape: ShapePtr; p: Vector; res: NearestPointQueryInfoPtr): CpFloat {.
-  cdecl, importc: "cShapePtrNearestPointQuery", dynlib: Lib.}
+  cdecl, importc: "cpShapeNearestPointQuery", dynlib: Lib.}
 #/ Perform a segment query against a shape. @c info must be a pointer to a valid cSegmentQueryInfoPtr structure.
 proc segmentQuery*(shape: ShapePtr, a, b: Vector, info: SegmentQueryInfoPtr): bool {.
-  cdecl, importc: "cShapePtrSegmentQuery", dynlib: Lib.}
+  cdecl, importc: "cpShapeSegmentQuery", dynlib: Lib.}
 
 #/ Get the hit point for a segment query.
 ## Possibly change; info to SegmentQueryInfoPtr 
@@ -1023,7 +1023,7 @@ defGetter(ShapePtr, SpacePtr, space, Space)
 
 defGetter(ShapePtr, BodyPtr, body, Body)
 proc seBody*(shape: ShapePtr, value: BodyPtr) {.
-  cdecl, importc: "cShapePtrSeBody", dynlib: Lib.}
+  cdecl, importc: "cpShapeSeBody", dynlib: Lib.}
 
 
 defGetter(ShapePtr, BB, bb, BB)

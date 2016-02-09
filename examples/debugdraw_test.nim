@@ -1,163 +1,180 @@
-import csfml, chipmunk, debugDraw, csfml_colors, math,
+import 
+  csfml, 
+  chipmunk, 
+  debugdraw, 
+  math,
+  basic2d,
   strutils
+
 const
   ScreenW = 800
   ScreenH = 600
   FontFile = "sansation.ttf"
+  LGrabbable = (1 shl 0).Layers
+  CTClutter = 2.CollisionType
+  CTExpl = 3.CollisionType
+
+type
+  ExplosionPtr = ref Explosion
+  Explosion = object
+    shape: chipmunk.ShapePtr
+    lifetime: float
+  UserData = ptr tuple[x: ExplosionPtr; sprite: pointer]
+  
 var 
   space = newSpace()
   window = newRenderWindow(
     videoMode(800, 600, 32), 
-    "chipmunk debugdraw", sfClose or sfTitlebar)
-  event: csfml.TEvent
+    "Chipmunk DebugDraw", WindowStyle.Default
+  )
+  event: csfml.Event
   fps = newClock()
   guiFont = newFont(FontFile)
-  view = window.getDefaultView.copy()
-const
-  LGrabbable = (1 shl 0).TLayers
-  CTClutter = 2.TCollisionType
-  CTExpl = 3.TCollisionType
-
-proc randomPoint(rect: var TIntRect): TVector =
+  view = window.defaultView.copy()
+  forceMult = -2000.0
+  explosions: seq[ExplosionPtr] = @[]
+  
+proc randomPoint(rect: var IntRect): Vector =
   result.x = (random(rect.width) + rect.left).CpFloat
   result.y = (random(rect.height) + rect.top).CpFloat
 
-proc vector[A:TVector2f|TVector2i](vec: A): TVector =
+proc vector[A:Vector2f|Vector2i](vec: A): Vector =
   result.x = vec.x.CpFloat
   result.y = vec.y.CpFloat
 
-type
-  PExplosion = ref TExplosion
-  TExplosion = object
-    shape: chipmunk.PShape
-    lifetime: float
+proc vec2i(vec: Vector): Vector2i =
+  result.x = vec.x.cint
+  result.y = vec.y.cint
+
+template CastUserCircle(a: chipmunk.ShapePtr): csfml.CircleShape =
+  cast[csfml.CircleShape](cast[UserData](a.data).sprite)
 
 ##presolve
-var forceMult = -2000.0
-proc repel(arb: PArbiter; space: PSpace; data: pointer): bool {.cdecl.} =
-  let 
-    dist = arb.bodyA.getPos() - arb.bodyB.getPos()
-  arb.bodyB.applyImpulse(dist.normalize() * (1.0 / dist.len() * forceMult), vectorZero)
-  
+proc repel(arb: ArbiterPtr; space: SpacePtr; data: pointer): bool {.cdecl.} =
+  var 
+    dist: Vector = arb.bodyA.getPos() - arb.bodyB.getPos()
+    distNorm = dist
+  distNorm.normalize()
+  arb.bodyB.applyImpulse(distNorm * (1.0 / basic2d.len(dist) * forceMult), VectorZero)
 
-randomize()
-window.setFramerateLimit 60
-space.addCollisionHandler(CtExpl, CtClutter, preSolve = repel)
-
-
-var explosions: seq[PExplosion] = @[]
-
-type PUserData = ptr tuple[x: PExplosion; sprite: pointer]
-
-template USERDATA(a: chipmunk.PShape): PUserData = cast[PUserData](a.data)
-template UserCircle(a: chipmunk.PShape): csfml.PCircleShape =
-  cast[csfml.PCircleShape](USERDATA(a).sprite)
-
-proc free(expl: PExplosion) =
+proc free(expl: ExplosionPtr) =
   expl.shape.body.free()
   expl.shape.free()
 
-proc createExplosion(point: TVector, lifetime: float) =
-  var x: PExplosion
+proc createExplosion(point: Vector, lifetime: float) =
+  var x: ExplosionPtr
   new(x, free)
   x.lifetime = lifetime
   var b = newBody(CpInfinity, CpInfinity)
   b.setPos point
-  x.shape = newCircleShape(b, 150, vectorZero)
+  x.shape = newCircleShape(b, 150, VectorZero)
   x.shape.setSensor true
   x.shape.setCollisionType CtExpl
   explosions.add x  
-  debugDraw.addShape(space, x.shape, cast[pointer](x)) 
-  var cs = UserCircle(x.shape)
-  cs.setOutlineColor Red
-  cs.setOutlineThickness 3.4
-  cs.setFillColor Transparent
+  debugdraw.addShape(space, x.shape, cast[pointer](x)) 
+  var cs = CastUserCircle(x.shape)
+  cs.outlineColor = Red
+  cs.outlineThickness = 3.4
+  cs.fillColor = Transparent
   
-proc random*(min, max: int): int {.inline.} = random(max - min) + min
+proc random*(min, max: int): int {.inline.} = 
+  random(max - min) + min
+
+randomize()
+window.framerateLimit = 60
+space.addCollisionHandler(CtExpl, CtClutter, preSolve = repel)
 
 
-##Create a bunch of objects
+## Create a bunch of objects
 block:
   let borders = [vector(0, 0), vector(0, ScreenH),
     vector(ScreenW, ScreenH), vector(ScreenW, 0)]
   for i in 0..3:
     var shape = space.addStaticShape(space.getStaticBody.newSegmentShape(
       borders[i], borders[(i + 1) mod 4], 16.0))
-  var area = intRect(20, 20, ScreenW - 20, ScreenH - 20)
+  var area = IntRect(
+    left: 20, 
+    top: 20, 
+    width: ScreenW - 20, 
+    height: ScreenH - 20
+  )
   for i in 0..30:
     var 
       body = space.addBody(newBody(random(5, 45).float / 5.0, 120.0))
-      shape = debugDraw.addShape(space, body.newCircleShape(random(10000) / 700, vectorZero))
+      shape = debugdraw.addShape(space, body.newCircleShape(random(10000) / 700, VectorZero))
     body.setPos randomPoint(area)
     #shape.setLayers LGrabbable
     shape.setCollisionType CtClutter
   for i in 0..20:
     var 
       body = space.addBody(newBody(random(2, 40).float / 5.0, 120.0))
-      shape = debugDraw.addShape(space, 
+      shape = debugdraw.addShape(space, 
         body.newBoxShape(random(5, 30).float, random(5, 12).float))
     body.setPos randomPoint(area)
-    #shape.setLayers LGrabbable
     shape.setCollisionType CtClutter
 
-debugDrawInit space
-
-proc vec2i(vec: TVector): TVector2i =
-  result.x = vec.x.cint
-  result.y = vec.y.cint
+debugdrawInit(space)
 
 var 
   fpsText = newText("", guiFont, 16)
   debugText = fpsText.copy()
   mousePos = vector(0,0)
-  activeShape: chipmunk.PShape
-  mouseShape = debugDraw.addShape(
-    space, newCircleShape(
-      space.getStaticBody(), 20.0, vectorZero))
-debugtext.setPosition(fpstext.getPosition() + vec2f(0, 16))
+  activeShape: chipmunk.ShapePtr
+  mouseShape = debugdraw.addShape(
+    space, 
+    newCircleShape(
+      space.getStaticBody(), 20.0, VectorZero
+    )
+  )
+#  ex = Explosion(shape: mouseShape, lifetime: 100.0)
+#cast[UserData](mouseShape.data).x = cast[ExplosionPtr](alloc0(sizeof(Explosion)))
+#cast[UserData](mouseShape.data).x[] = ex
+#cast[UserData](mouseShape.data).sprite = mouseShape
+debugtext.position = fpstext.position + Vector2f(x:0, y:16)
 
 block:
-  let circ = USERCIRCLE(mouseShape)
-  circ.setOutlineColor Blue
-  circ.setFillColor Transparent
-  circ.setOutlineThickness 1.2
+  #let circ = CastUserCircle(mouseShape)
+  let circ = cast[csfml.CircleShape](mouseShape.data)
+  circ.outlineColor = Blue
+  circ.fillColor = Transparent
+  circ.outlineThickness = 1.2
 
-while window.isOpen():
+while window.open():
   while window.pollEvent(event):
     case event.kind
-    of EvtClosed:
+    of EventType.Closed:
       window.close()
-    of EvtMouseWheelMoved:
-      if event.mouseWheel.delta == 1:  ## upd
+    of EventType.MouseWheelMoved:
+      if event.mouseWheel.delta == 1:
         forceMult += 200
       else:
         forceMult -= 200
-      debugText.setString($forcemult.int)
-    of EvtMouseMoved:
+      debugText.strC = $forcemult.int
+    of EventType.MouseMoved:
       mousePos.x = event.mouseMove.x.CpFloat
       mousePos.y = event.mouseMove.y.CpFloat
       mouseShape.body.setPos mousePos
-    of EvtMouseButtonPressed:
+    of EventType.MouseButtonPressed:
       case event.mouseButton.button
-      of MouseLeft:
-        let pos = window.convertCoords(vec2i(mousePos), view)
+      of MouseButton.Left:
+        let pos = window.mapPixelToCoords(vec2i(mousePos), view)
         var shape = space.pointQueryFirst(vector(pos), LGrabbable, 0)
         if not shape.isNil:
           activeShape = shape
         else:
           echo "I got nothin'"
-      of MouseRight:
+      of MouseButton.Right:
         createExplosion mousePos, 1.0
       else: discard
-    of EvtMouseButtonReleased:
-      if event.mouseButton.button == MouseLeft:
+    of EventType.MouseButtonReleased:
+      if event.mouseButton.button == MouseButton.Left:
         activeShape = nil
       
     else: discard
   
   let dt = fps.restart.asMilliseconds() / 1000
   
-  fpsText.setString(formatFloat((1.0 / dt), ffDecimal, 2))
+  fpsText.strC = formatFloat((1.0 / dt), ffDecimal, 2)
   
   var i = 0
   while i < explosions.len:
@@ -172,8 +189,8 @@ while window.isOpen():
   
   space.step(dt)
   
-  window.clear black
-  window.setView view
+  window.clear(Black)
+  window.view = view
   
   ## this is all thats required to draw all the shapes
   window.draw space
