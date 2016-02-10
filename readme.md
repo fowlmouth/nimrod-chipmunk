@@ -14,8 +14,8 @@ $ nimble install chipmunk
 
 ## Notes on some examples:
 
-Compiling the **examples/planets.nim** example should be done with the following command:<br>
-```$ nim c -d:csfmlNoDestructors planets.nim```<br>
+The **examples/planets.nim** and **examples/debugdraw_text.nim** examples need to be compiled with
+the switch: ```-d:csfmlNoDestructors```<br>
 This disables destructors in the Nim-CSFML library, otherwise you will get a lot of segfaults!<br>
 Thanks to BlaXpirit for pointing this out.
 
