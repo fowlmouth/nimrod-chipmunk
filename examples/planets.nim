@@ -4,7 +4,7 @@ import
   csfml, 
   math, 
   basic2d,
-  debugDraw
+  debugdraw
 
 const
   gravityStrength = 50.CpFloat
@@ -41,8 +41,8 @@ proc addPlanet() =
     radius = mass * 2.0
     gravityRadius = radius * 8.8
     body = space.addBody(newBody(mass, MomentForCircle(mass, 0.0, radius, VectorZero)))
-    shape = debugDraw.addShape(space, body.newCircleShape(radius, VectorZero))
-    gravity = debugDraw.addShape(space, body.newCircleShape(gravityRadius, VectorZero))
+    shape = debugdraw.addShape(space, body.newCircleShape(radius, VectorZero))
+    gravity = debugdraw.addShape(space, body.newCircleShape(gravityRadius, VectorZero))
     gravityCircle = TOSPRITE(gravity, csfml.CircleShape)
   body.setPos randomPoint(screenArea)
   shape.setCollisionType CTplanet
@@ -52,10 +52,13 @@ proc addPlanet() =
   gravityCircle.outlineColor = Blue
   gravityCircle.outlineThickness = 2.0
 
+
+# Startup initialization
 window.frameRateLimit = 60
 space.setIterations(20)
 space.addCollisionHandler(CTgravity, CTplanet, preSolve = gravityApplicator)
 
+# Add the planets and the borders
 block:
   let borders = [vector(0, 0), vector(0, ScreenH),
                  vector(ScreenW, ScreenH), vector(ScreenW, 0)]
@@ -66,6 +69,7 @@ block:
   for i in 1..30:
     addPlanet()
 
+# Initialize the debugdraw module
 debugDrawInit(space)
 
 var

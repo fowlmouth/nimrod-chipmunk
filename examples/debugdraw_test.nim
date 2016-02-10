@@ -72,7 +72,7 @@ proc createExplosion(point: Vector, lifetime: float) =
   x.shape.setCollisionType CtExpl
   explosions.add x  
   debugdraw.addShape(space, x.shape, cast[pointer](x)) 
-  var cs = CastUserCircle(x.shape)
+  var cs = cast[csfml.CircleShape](x.shape.data)
   cs.outlineColor = Red
   cs.outlineThickness = 3.4
   cs.fillColor = Transparent
@@ -80,12 +80,13 @@ proc createExplosion(point: Vector, lifetime: float) =
 proc random*(min, max: int): int {.inline.} = 
   random(max - min) + min
 
+
+# Startup initialization
 randomize()
 window.framerateLimit = 60
 space.addCollisionHandler(CtExpl, CtClutter, preSolve = repel)
 
-
-## Create a bunch of objects
+# Create a bunch of objects
 block:
   let borders = [vector(0, 0), vector(0, ScreenH),
     vector(ScreenW, ScreenH), vector(ScreenW, 0)]
@@ -103,7 +104,6 @@ block:
       body = space.addBody(newBody(random(5, 45).float / 5.0, 120.0))
       shape = debugdraw.addShape(space, body.newCircleShape(random(10000) / 700, VectorZero))
     body.setPos randomPoint(area)
-    #shape.setLayers LGrabbable
     shape.setCollisionType CtClutter
   for i in 0..20:
     var 
@@ -113,6 +113,7 @@ block:
     body.setPos randomPoint(area)
     shape.setCollisionType CtClutter
 
+# Initialize the debugdraw module
 debugdrawInit(space)
 
 var 
@@ -126,14 +127,10 @@ var
       space.getStaticBody(), 20.0, VectorZero
     )
   )
-#  ex = Explosion(shape: mouseShape, lifetime: 100.0)
-#cast[UserData](mouseShape.data).x = cast[ExplosionPtr](alloc0(sizeof(Explosion)))
-#cast[UserData](mouseShape.data).x[] = ex
-#cast[UserData](mouseShape.data).sprite = mouseShape
+
 debugtext.position = fpstext.position + Vector2f(x:0, y:16)
 
 block:
-  #let circ = CastUserCircle(mouseShape)
   let circ = cast[csfml.CircleShape](mouseShape.data)
   circ.outlineColor = Blue
   circ.fillColor = Transparent
@@ -169,6 +166,10 @@ while window.open():
     of EventType.MouseButtonReleased:
       if event.mouseButton.button == MouseButton.Left:
         activeShape = nil
+    of EventType.KeyPressed:
+      if event.key.code == KeyCode.Escape:
+        window.close()
+        break
       
     else: discard
   

@@ -75,12 +75,4 @@ proc addShape*(space: SpacePtr; shape: chipmunk.ShapePtr;
 
 proc removeShape*(space: SpacePtr; shape: chipmunk.ShapePtr, deallocData = true) =
   chipmunk.removeShape space, shape
-  if not shape.data.isNil:
-    case shape.klass.kind
-    of CP_SEGMENT_SHAPE: TOSPRITE(shape, VertexArray).destroy()
-    of CP_POLY_SHAPE: TOSPRITE(shape, csfml.RectangleShape).destroy()
-    of CP_CIRCLE_SHAPE: TOSPRITE(shape, csfml.CircleShape).destroy()
-    else: discard
-    if deallocData:
-      dealloc(shape.data)
 
