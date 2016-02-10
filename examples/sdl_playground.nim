@@ -209,8 +209,9 @@ proc ProcessInput() =
           mouseEvent = sdl2.button(events[i])[]
           mouseButton = mouseEvent.button
         if mouseButton == BUTTON_LEFT:
+          # This binds the mouseJoint to an object
           let curMousePos = vector(mouseState.position.x.CpFloat, mouseState.position.y.CpFloat)
-          var closestS = space.pointQueryFirst(curMousePos, 0, 0)
+          var closestS = space.pointQueryFirst(curMousePos, 1, 0)
           if not closestS.isNil:
             mouseJoint = newPivotJoint(
               mouseBody, 
@@ -224,8 +225,8 @@ proc ProcessInput() =
             discard space.addConstraint(mouseJoint)
           else:
             echo "No object found at $1,$2".format(curMousePos.x, curMousePos.y)
-        elif not mouseJoint.isNil:
-          # release
+        elif mouseButton == BUTTON_RIGHT and not mouseJoint.isNil:
+          # Release the mouseJoint
           space.RemoveConstraint(mouseJoint)
           mouseJoint.free()
           mouseJoint.reset()
@@ -240,7 +241,6 @@ proc drawShape(shape: ShapePtr; data: pointer) {.cdecl.} =
       b = shape.getBody
       a = b.getAngle()
       p2 = Vector2d(x:cos(a), y:sin(a)) * r.float
-    echo shape.body.p
     # Draw the circle
     mainRenderer.circleRGBA(
       b.p.x.int16,

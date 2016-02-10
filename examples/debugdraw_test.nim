@@ -155,6 +155,7 @@ while window.open():
       case event.mouseButton.button
       of MouseButton.Left:
         let pos = window.mapPixelToCoords(vec2i(mousePos), view)
+        echo LGrabbable
         var shape = space.pointQueryFirst(vector(pos), LGrabbable, 0)
         if not shape.isNil:
           activeShape = shape
