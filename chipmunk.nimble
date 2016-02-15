@@ -1,5 +1,5 @@
 [Package]
-name: "chipmunk6"
+name: "chipmunk"
 version: "6.1.5"
 author: "fowl"
 description: "chipmunk 2d physics library"
