@@ -57,7 +57,7 @@ for i in 0..3:
         1.0
       )
     )
-  sfBorders[i].position = borders[i].cp2sfml
+  sfBorders.getVertex(i).position = borders[i].cp2sfml
   shape.setLayers(ClBorder)
   shape.setCollisionType(CtBorder)
   echo($ shape.getLayers())
@@ -66,10 +66,6 @@ for i in 0..3:
 proc vectorToVec2f(a: Vector): Vector2f =
   result.x = a.x
   result.y = a.y
-
-proc floor(a: Vector): Vector2f =
-  result.x = a.x.floor
-  result.y = a.y.floor
 
 proc newBall(mass = 10.0, radius = 10.0): GameObjPtr =
   #let pos = newVector(random(Width).float, random(Height).float)
@@ -116,7 +112,6 @@ var
   font = newFont("sansation.ttf")
   text = newText()
   event: Event
-  clock = newClock()
   oldPos: Vector
 text.characterSize = 18
 text.font = font

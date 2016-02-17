@@ -48,10 +48,10 @@ proc initializeShape(shape: chipmunk.ShapePtr; userData: pointer = nil) {.cdecl.
     ## VertexArray == array[x, ptr Vertex]
     shape.data = csfml.newVertexArray(PrimitiveType.Lines, 2)
     let vertexData = cast[VertexArray](shape.data)
-    vertexData[0].position = shape.getSegmentA.cp2sfml()
-    vertexData[1].position = shape.getSegmentB.cp2sfml()
-    vertexData[0].color = colors[CP_SEGMENT_SHAPE]
-    vertexData[1].color = colors[CP_SEGMENT_SHAPE]
+    vertexData.getVertex(0).position = shape.getSegmentA.cp2sfml()
+    vertexData.getVertex(1).position = shape.getSegmentB.cp2sfml()
+    vertexData.getVertex(0).color = colors[CP_SEGMENT_SHAPE]
+    vertexData.getVertex(1).color = colors[CP_SEGMENT_SHAPE]
   of CP_POLY_SHAPE:
     shape.data = csfml.newConvexShape(shape.getNumVerts())
     let polygonData = cast[ConvexShape](shape.data)

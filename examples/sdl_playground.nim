@@ -22,7 +22,6 @@ var
   mainWindow: sdl2.WindowPtr
   mainRenderer: sdl2.RendererPtr
   displayData: sdl2.DisplayMode
-#  mousePos: Vector2d #tuple[x,y: cint]
   mouseJoint: ConstraintPtr
   space = newSpace()
   mouseBody = space.addBody(newBody(1.0, 1.0))
@@ -127,34 +126,6 @@ block:
   for i in random(100).times:
     addBox(width = random(5 .. 15).float, height = random(6 .. 12).float)
 ]#    
-
-#NG.addHandler do(E: PSdlEngine) -> bool:
-#  if E.evt.kind in { MouseButtonDown, MouseButtonUp }:
-#    let m = E.evt.evMOuseButton
-#    if m.button == BUTTON_LEFT:
-#      result = true
-#      if m.state == 1:
-#          let mousePos = vector(m.x.cpfloat, m.y.cpfloat)
-#          var closestS = space.pointQueryFirst(mousePos, 0, 0)
-#          if not closestS.isNil:
-#            mouseJoint = newPivotJoint(mouseBody, closestS.body, VectorZero,
-#              closestS.body.world2local(mousePos))
-#            mouseJoint.maxForce = 50_000
-#            #mouseJoint.biasCoef = 0.15
-#            mouseJoint.errorBias = 0.15
-#            discard space.addConstraint(mouseJoint)
-#          else:
-#            echo "No object found at $1,$2".format(mousePos.x.ff, mousepos.y.ff)
-#      elif not mouseJoint.isNil:
-#        # release
-#        space.removeConstraint mouseJoint
-#        mouseJoint.free
-#        mouseJoint.reset
-#    else:
-#      echo "wrong mouse button! ", m.button
-#      echo byterepr(m[])
-#      #echo repr(m[])
-#      #echo repr(cast[ptr array[100, byte]](m))
 
 proc GetEvents*(): seq[sdl2.Event] =
     var
