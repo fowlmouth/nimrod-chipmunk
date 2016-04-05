@@ -1,7 +1,7 @@
 [Package]
 name: "chipmunk"
 version: "6.1.5"
-author: "fowl"
+author: "fowl, matkuki"
 description: "chipmunk 2d physics library"
 license: "MIT"
 
