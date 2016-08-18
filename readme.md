@@ -1,7 +1,7 @@
 ## Chipmunk2D
 
 [Chipmunk 6.1.*](http://chipmunk-physics.net/ "Chipmunk") bindings for 
-[Nim 0.13.0](http://nim-lang.org "Nimrod") or higher.<br>
+[Nim 0.14.0](http://nim-lang.org "Nim") or higher.<br>
 Tested with Chipmunk 6.1.5
 
 ### Installation: ###
