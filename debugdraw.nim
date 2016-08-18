@@ -1,4 +1,8 @@
-import csfml, chipmunk, math
+import 
+  csfml, 
+  chipmunk, 
+  math, 
+  random
 
 let
   colors: array[ShapeType, Color] = [Green, Blue, Red, Yellow]

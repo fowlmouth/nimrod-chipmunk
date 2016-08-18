@@ -6,4 +6,4 @@ description: "chipmunk 2d physics library"
 license: "MIT"
 
 [Deps]
-requires: "nimrod >= 0.13.0"
+requires: "nimrod >= 0.14.0"

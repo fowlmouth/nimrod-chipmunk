@@ -3,6 +3,7 @@ import
   chipmunk, 
   debugdraw, 
   math,
+  random,
   basic2d,
   strutils
 
