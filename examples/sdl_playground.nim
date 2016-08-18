@@ -3,6 +3,7 @@ import
   sdl2/gfx,
   chipmunk, 
   math, 
+  random, 
   basic2d, 
   json, 
   strutils
@@ -277,7 +278,7 @@ sdl2.init(INIT_EVERYTHING)
 # Get the display data
 if sdl2.getCurrentDisplayMode(0, displayData) != SdlSuccess:
   quit "Error while obtaining display data!"
-# Math randomize
+# Initialize the random generator
 randomize()
 # Create the main window
 mainWindow = sdl2.createWindow(

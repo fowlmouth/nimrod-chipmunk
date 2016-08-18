@@ -1,7 +1,8 @@
 import 
   chipmunk, 
   csfml, 
-  math
+  math,
+  random
 
 const
   Width = 800
